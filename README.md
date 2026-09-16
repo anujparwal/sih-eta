@@ -1,83 +1,93 @@
 # Dynamic Train ETA — SIH 2026
 
-Phase 1 scaffold for coaching train ETA forecasting on Indian routes.
-FastAPI + PostgreSQL/PostGIS + Redis + Next.js/Tailwind, in one monorepo.
+Phase 2 data foundation for coaching train ETA forecasting on Indian routes:
+FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind shell, and a Python
+telemetry simulator. Six **real historical routes** and 63 stations are seeded
+from attributed public data. Train positions and incidents are **synthetic**.
 
-The planned MVP is six simulated coaching trains, an XGBoost ETA model with
-SHAP explanations evaluated against a current-delay carryover baseline, and
-passenger, station board and control room views served by one API. **This
-phase contains infrastructure only**: no route data, telemetry, predictions
-or operational dashboards are implemented yet.
+The future MVP adds XGBoost with SHAP, measured comparison against a
+current-delay carryover baseline, and passenger, station board and control room
+views. Predictions and operational dashboards are not implemented yet.
 
 ## Start locally
 
-Install Docker Engine or Docker Desktop with Compose v2. From a fresh clone:
+With Docker Engine/Desktop and Compose v2, from a fresh clone:
 
 ```sh
 cp .env.example .env
 docker compose up --build -d --wait
-docker compose ps
 ```
 
-If your Compose command is named `docker-compose`, the equivalent is:
+`docker-compose` can be substituted if that is your Compose executable name.
+`docker-compose up` also starts the stack in the foreground. The first build
+needs internet access to download images/packages. Subsequent runs seed from
+the checked-in fixture without downloading railway data.
 
-```sh
-docker-compose up --build -d --wait
-```
-
-`docker-compose up` also runs the stack in the foreground. The first build
-downloads images and dependencies and can take several minutes. All four
-services should become healthy. `.env.example` contains local development
-defaults; never use its password for a public deployment.
-
-| Service | Address / purpose |
-| --- | --- |
-| Frontend | http://localhost:3000 — static scaffold page |
-| Backend docs | http://localhost:8000/docs |
-| Liveness | http://localhost:8000/health |
-| Readiness | http://localhost:8000/ready — PostGIS and Redis checks |
-| PostgreSQL / Redis | Compose network only; no published host ports |
+The backend applies Alembic migrations and seeds the network before serving.
+Seeding is idempotent and does not delete telemetry. All four default services
+should become healthy. Open [the frontend](http://localhost:3000) or
+[API docs](http://localhost:8000/docs). The frontend is still a placeholder;
+inspect telemetry in PostgreSQL during this phase.
 
 ```sh
 curl --fail http://localhost:8000/ready
-docker compose logs --tail=100
-docker compose down
+docker compose ps
 ```
 
-`down` preserves named volumes. `docker compose down -v` **deletes local
-database and Redis data**; use it only when intentionally resetting the demo.
-Changing database credentials in `.env` does not update an existing database
-volume. Use the original credentials or deliberately reset disposable data.
-If a port is busy, change `BACKEND_PORT` or `FRONTEND_PORT`; update
-`NEXT_PUBLIC_API_BASE_URL` alongside the backend port and rebuild the frontend.
-The public API URL is a build argument reserved for later browser API calls;
-`API_INTERNAL_URL=http://backend:8000` is reserved for server-side calls.
-
-## Layout
-
-```text
-backend/    FastAPI, infrastructure endpoints and pytest checks
-frontend/   Next.js App Router, TypeScript and Tailwind shell
-ml/         Future training, model artifacts and evaluation results
-simulator/  Future Python synthetic telemetry generator
-docs/       Architecture and API contract
-```
-
-## Checks
-
-The `Phase 1 scaffold` GitHub Actions workflow runs on pull requests. It checks
-frontend lint/types/build, starts all four services on Docker Engine with
-health checks, and runs backend tests and style checks inside the container.
-
-Backend tests and style checks use the same image as the running service:
+To start continuous simulation as an additional service:
 
 ```sh
-docker compose run --rm backend pytest
-docker compose run --rm backend ruff check .
-docker compose run --rm backend ruff format --check .
+docker compose --profile simulation up --build -d
 ```
 
-Frontend checks need Node.js 22 and npm on the host:
+The simulator emits one sample per train about every five real seconds and
+occasionally produces delays. No railway API keys or live feeds are used.
+
+## Two-minute acceptance check
+
+Run this with the four default services healthy and no other simulator running.
+It increases disruption frequency to exercise events during a short demo:
+
+```sh
+docker compose --profile simulation build simulator
+SIMULATION_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+docker compose --profile simulation run --rm -T simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
+docker compose run --rm -T backend python -m app.verify_telemetry --since "$SIMULATION_START"
+```
+
+The verifier requires at least 20 samples spanning at least 110 seconds per
+train, forward movement, plausible speeds, recorded events and observable
+delay. It prints per-train counts and distance advanced. GitHub Actions runs
+this full check on Docker Engine for each PR, alongside all tests and builds.
+
+Inspect stored data directly:
+
+```sh
+docker compose exec postgres psql -U sih_eta -d sih_eta -c 'SELECT train_number, count(*), min(timestamp), max(timestamp) FROM live_positions GROUP BY train_number ORDER BY train_number;'
+docker compose exec postgres psql -U sih_eta -d sih_eta -c 'SELECT train_number, event_type, severity, duration_seconds FROM events ORDER BY timestamp DESC LIMIT 10;'
+```
+
+These examples use the default local credentials; adapt them if `.env` differs.
+
+## Tests and checks
+
+The backend image includes tests, simulator tests and Ruff. Create a **dedicated
+throwaway test database** once (with the default local credentials):
+
+```sh
+docker compose exec -T postgres createdb -U sih_eta sih_eta_test
+docker compose run --rm -T -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test backend pytest
+docker compose run --rm -T backend ruff check .
+docker compose run --rm -T backend ruff format --check .
+```
+
+If `createdb` reports the database already exists, reuse it. Never point tests
+at application data: the migration round-trip test recreates application
+tables in the test database. The name must end in `_test`.
+`docker compose run --rm backend pytest` without TEST_DATABASE_URL runs unit
+and simulator tests, **skipping database integration tests**.
+
+Frontend checks require Node.js 22 and npm:
 
 ```sh
 cd frontend
@@ -87,40 +97,69 @@ npm run typecheck
 npm run build
 ```
 
-There are no train/ML/simulator/browser-flow tests yet because those features
-are not implemented. Backend tests cover liveness, dependency failure behavior
-and the published infrastructure routes. The container startup check exercises
-real PostGIS and Redis connections.
-
-For backend-only development, from `backend/` with Python 3.12:
+For Python development, from `backend/` with Python 3.12:
 
 ```sh
 python3.12 -m venv .venv
 .venv/bin/pip install --require-hashes -r requirements-dev.txt
 .venv/bin/pytest
-.venv/bin/uvicorn app.main:app --reload
 ```
 
-Liveness works without backing services; readiness correctly returns 503
-until reachable PostgreSQL/PostGIS and Redis are configured. The host backend
-does not automatically read the root `.env`. Supply `POSTGRES_HOST`,
-`POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` and
-`REDIS_URL` in its environment for your own accessible services. The default
-Compose database/cache are intentionally not published to the host.
+To run the backend outside containers, export POSTGRES_HOST, POSTGRES_PORT,
+POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD and REDIS_URL for reachable
+services; then run `.venv/bin/alembic upgrade head`, `.venv/bin/python -m app.seed`
+and `.venv/bin/uvicorn app.main:app --reload` from `backend/`. The root `.env`
+is read by Compose, not automatically by the host Python process. The default
+Compose database/cache ports are private. The host simulator needs no packages:
+run `python3 simulator/simulate.py --duration 120` from the repository root.
 
-For frontend development, run `npm run dev` in `frontend/` after `npm ci`.
-Stop the Compose frontend first if using the same port.
+## Layout and data
 
-Python lockfiles include transitive dependency pins and hashes. To update
-them, install `uv`, edit the `.in` files, then run from `backend/`:
+```text
+backend/    SQLAlchemy models, Alembic migrations, seed/ingestion, tests
+simulator/  Real-time synthetic journeys and disruptions
+data/       Reproducible six-route historical fixture
+scripts/    Checksum-verified source extraction
+frontend/   Next.js App Router, TypeScript and Tailwind shell
+ml/         Future training, model exports and evaluation
+docs/       Architecture, ingestion contract and data provenance
+```
+
+See [data sources](docs/data_sources.md) for pinned URLs, checksums, attribution,
+route selection and historical-data limitations. Route geometries join station
+coordinates schematically; they are **not surveyed railway tracks**. Directional
+5 km occupancy blocks demonstrate a simplified mechanism, not real signal
+locations or an operational rail safety model. Schedule distances remain the
+source timetable's kilometre values; they are not replaced with straight-line
+geometry lengths. The historical_delays table starts empty.
+
+## Configuration and cleanup
+
+The `.env.example` defaults are for local development. Backend/frontend ports
+bind to loopback; PostgreSQL and Redis are not published. If a port is busy,
+change BACKEND_PORT or FRONTEND_PORT. Keep NEXT_PUBLIC_API_BASE_URL aligned
+with the backend port and rebuild the frontend. The browser URL and server-only
+API_INTERNAL_URL are reserved for later UI integration.
+
+```sh
+docker compose --profile simulation logs --tail=100
+docker compose --profile simulation down
+```
+
+`down` preserves data volumes. `down -v` **deletes local database/cache data**;
+use it only to intentionally reset the demo. Changing credentials in `.env`
+does not change an existing database volume's credentials. A new simulator
+process creates new journey IDs, preserving old trails separately. Run one
+simulator process at a time for the six-train demo.
+
+Python dependency inputs and hashed locks are in `backend/`. After changing
+the `.in` files, regenerate from `backend/` with `uv`:
 
 ```sh
 uv pip compile requirements.in --python-version 3.12 --generate-hashes -o requirements.txt
 uv pip compile requirements-dev.in --python-version 3.12 --generate-hashes -o requirements-dev.txt
 ```
 
-Keep runtime dependency versions consistent across the two lockfiles.
-Frontend versions are pinned in `package.json` and `package-lock.json`.
-
-See [AGENTS.md](AGENTS.md), [architecture](docs/architecture.md) and the
-[Phase 1 API contract](docs/api_contract.md) before starting the next phase.
+Keep runtime pins identical in both locks; commit frontend package-lock.json.
+See [AGENTS.md](AGENTS.md), [architecture](docs/architecture.md),
+[API contract](docs/api_contract.md) and [simulator notes](simulator/README.md).

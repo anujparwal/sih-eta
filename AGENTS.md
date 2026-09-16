@@ -3,8 +3,9 @@
 ## Scope and decisions
 
 This is the SIH 2026 Dynamic ETA Forecast for Coaching Trains monorepo.
-Phase 1 is infrastructure scaffolding only. Do not imply that telemetry,
-predictions, model evaluation, or the three operational views exist yet.
+Phase 2 adds a sourced historical network, PostGIS schema/migrations, synthetic
+telemetry ingestion and a six-train simulator. ETA predictions, model evaluation,
+Redis publishing and the three operational views are not implemented yet.
 
 The upgraded `sih_plan.md` takes precedence over the older Astra plan where
 they differ: PostgreSQL **with PostGIS**, exactly **six simulated coaching
@@ -20,7 +21,8 @@ Never claim the model beats the baseline until measured evaluation proves it.
 
 - `backend/`: Python 3.12, FastAPI; PostgreSQL 15 + PostGIS 3.3 and Redis 7.4.
 - `frontend/`: Node.js 22, Next.js App Router, TypeScript, React, Tailwind CSS 4.
-- `simulator/`: future Python telemetry generator (Phase 2).
+- `simulator/`: Python telemetry generator with synthetic delay events.
+- `data/`: checksum-pinned historical network fixture; provenance in `docs/data_sources.md`.
 - `ml/`: future XGBoost training scripts, exported model artifacts, SHAP and evaluation (Phase 5).
 - `docs/`: architecture notes and API contract.
 - `docker-compose.yml`: local PostgreSQL, Redis, backend and frontend services.
@@ -44,7 +46,8 @@ From the repository root, with Docker Engine and Compose v2:
 ```sh
 cp .env.example .env # only if .env does not already exist
 docker compose up --build -d --wait
-docker compose run --rm backend pytest
+docker compose exec -T postgres createdb -U sih_eta sih_eta_test # once, for default local credentials
+docker compose run --rm -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test backend pytest
 docker compose run --rm backend ruff check .
 docker compose run --rm backend ruff format --check .
 cd frontend
@@ -56,6 +59,15 @@ npm run build
 
 `docker-compose` may be substituted if Compose is installed under that name.
 Confirm all four services are healthy and `GET /ready` returns HTTP 200.
-There are no ML, simulator or browser-flow test suites in Phase 1; add
-meaningful tests when those features are implemented. The frontend currently
-has lint, type and production-build checks. See README.md for local commands.
+Integration tests require a dedicated database whose name ends in `_test`; the
+migration round-trip test recreates its application tables. Never use the running
+application database for tests. Without TEST_DATABASE_URL the database tests skip.
+Simulator tests are included in the backend suite. Run the two-minute smoke check
+in README.md before declaring telemetry work complete. There are no ML or browser
+flow tests yet. Use Ruff with `--config backend/pyproject.toml` for root Python scripts.
+
+Keep the PostGIS choice: indexed PostgreSQL time-series tables replace the older
+plan’s TimescaleDB hypertable. Use timezone-aware UTC telemetry and unwrapped IST
+schedule offsets. Preserve historical source names/codes and label connector
+geometry, block occupancy and telemetry as synthetic approximations. Never seed
+invented historical delay averages. Migration and seed commands must be repeatable.

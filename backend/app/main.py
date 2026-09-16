@@ -1,14 +1,23 @@
-"""Infrastructure endpoints only; train and prediction APIs arrive in later phases."""
+"""Infrastructure and synthetic ingestion; ETA APIs arrive in later phases."""
 
 import asyncio
 import os
 
 import psycopg
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
+from sqlalchemy.exc import SQLAlchemyError
 
-app = FastAPI(title="Dynamic Train ETA", version="0.1.0")
+from app.ingest import router as ingest_router
+
+app = FastAPI(title="Dynamic Train ETA", version="0.2.0")
+app.include_router(ingest_router)
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_unavailable(_request: Request, _error: SQLAlchemyError) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"detail": "Telemetry store unavailable"})
 
 
 async def check_postgres() -> None:
@@ -23,6 +32,9 @@ async def check_postgres() -> None:
     )
     async with connection:
         await connection.execute("SELECT postgis_version()")
+        cursor = await connection.execute("SELECT 1 FROM routes LIMIT 1")
+        if await cursor.fetchone() is None:
+            raise RuntimeError("Static network has not been seeded")
 
 
 async def check_redis() -> None:

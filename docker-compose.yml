@@ -26,7 +26,10 @@ services:
       retries: 12
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    command: ["sh", "-c", "alembic upgrade head && python -m app.seed && exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
@@ -47,6 +50,17 @@ services:
       timeout: 10s
       retries: 6
       start_period: 15s
+
+  simulator:
+    profiles: ["simulation"]
+    build:
+      context: .
+      dockerfile: simulator/Dockerfile
+    environment:
+      API_INTERNAL_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
 
   frontend:
     build:
