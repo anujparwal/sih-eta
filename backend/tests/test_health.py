@@ -52,5 +52,10 @@ def test_readiness_reports_each_dependency(monkeypatch, postgres_ok, redis_ok):
     assert "secret-password" not in response.text
 
 
-def test_openapi_contains_only_infrastructure_routes():
-    assert set(get("/openapi.json").json()["paths"]) == {"/health", "/ready"}
+def test_openapi_contains_phase_two_routes():
+    assert set(get("/openapi.json").json()["paths"]) == {
+        "/health",
+        "/ready",
+        "/ingest/position",
+        "/ingest/event",
+    }

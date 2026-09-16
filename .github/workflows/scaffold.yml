@@ -1,4 +1,4 @@
-name: Phase 1 scaffold
+name: Train ETA checks
 
 on:
   pull_request:
@@ -42,9 +42,16 @@ jobs:
           curl --fail --output /dev/null http://localhost:3000/
       - name: Check backend inside its container
         run: |
-          docker compose run --rm -T backend pytest
+          docker compose exec -T postgres createdb -U sih_eta sih_eta_test
+          docker compose run --rm -T -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test backend pytest
           docker compose run --rm -T backend ruff check .
           docker compose run --rm -T backend ruff format --check .
+      - name: Verify two minutes of synthetic telemetry
+        run: |
+          docker compose --profile simulation build simulator
+          SIMULATION_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          docker compose --profile simulation run --rm -T simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
+          docker compose run --rm -T backend python -m app.verify_telemetry --since "$SIMULATION_START"
       - name: Capture service status and logs
         if: always()
         run: |

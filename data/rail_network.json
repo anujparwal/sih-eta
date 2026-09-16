@@ -1,0 +1,1139 @@
+{
+  "dataset_version": "ogd-2015-six-trains-v1",
+  "schedule_timezone": "Asia/Kolkata",
+  "geometry_kind": "schematic_station_connectors",
+  "sources": {
+    "timetable.csv": {
+      "url": "https://raw.githubusercontent.com/napsternxg/ipython-notebooks/f327874fcf7b99c19c82919ad1cdba01660d2ef1/data/isl_wise_train_detail_03082015_v1.csv",
+      "sha256": "2549b40343f509454dd2e84f0375a5d3d200593b3c01e91ea217baae800b5ee8"
+    },
+    "stations.json": {
+      "url": "https://raw.githubusercontent.com/datameet/railways/e0c538a1e41ae5eace454d2818902e1065608e16/stations.json",
+      "sha256": "9bd5e1da3a859e5359a95f40b6009aa468efb177da4faac57ffdcd7daeb4df18"
+    }
+  },
+  "stations": [
+    {
+      "code": "AD",
+      "name": "ADONI",
+      "zone": null,
+      "lat": 15.617035,
+      "lon": 77.27485
+    },
+    {
+      "code": "ADH",
+      "name": "ANDHERI",
+      "zone": "WR",
+      "lat": 19.1174289,
+      "lon": 72.84685300000001
+    },
+    {
+      "code": "AGC",
+      "name": "AGRA CANTT",
+      "zone": null,
+      "lat": 27.157992,
+      "lon": 77.990153
+    },
+    {
+      "code": "ALD",
+      "name": "ALLAHABAD JN",
+      "zone": null,
+      "lat": 25.446241,
+      "lon": 81.828816
+    },
+    {
+      "code": "ANG",
+      "name": "AHMADNAGAR",
+      "zone": null,
+      "lat": 19.075519477700002,
+      "lon": 74.721882467
+    },
+    {
+      "code": "ATP",
+      "name": "ANANTAPUR",
+      "zone": null,
+      "lat": 14.686478,
+      "lon": 77.59531199999999
+    },
+    {
+      "code": "BAP",
+      "name": "BELAPUR",
+      "zone": null,
+      "lat": 19.619569311800003,
+      "lon": 74.6617443079
+    },
+    {
+      "code": "BAU",
+      "name": "BURHANPUR",
+      "zone": "CR",
+      "lat": 21.3343976,
+      "lon": 76.1986787
+    },
+    {
+      "code": "BCT",
+      "name": "MUMBAI CENTRAL",
+      "zone": "WR",
+      "lat": 18.970667,
+      "lon": 72.819383
+    },
+    {
+      "code": "BH",
+      "name": "BHARUCH JN",
+      "zone": null,
+      "lat": 21.706907,
+      "lon": 72.997689
+    },
+    {
+      "code": "BINA",
+      "name": "BINA JN",
+      "zone": null,
+      "lat": 24.170973500000002,
+      "lon": 78.1831998
+    },
+    {
+      "code": "BL",
+      "name": "VALSAD",
+      "zone": "WR",
+      "lat": 20.6085595,
+      "lon": 72.9335291
+    },
+    {
+      "code": "BNC",
+      "name": "BANGALORE CANT",
+      "zone": "SWR",
+      "lat": 12.9936735,
+      "lon": 77.59932690000001
+    },
+    {
+      "code": "BNCE",
+      "name": "BANGALORE EAST",
+      "zone": "SWR",
+      "lat": 13.001479999999999,
+      "lon": 77.6184701
+    },
+    {
+      "code": "BPL",
+      "name": "BHOPAL  JN",
+      "zone": null,
+      "lat": 23.266884384300003,
+      "lon": 77.4131428577
+    },
+    {
+      "code": "BPQ",
+      "name": "BALHARSHAH",
+      "zone": null,
+      "lat": 19.8490173,
+      "lon": 79.3485858
+    },
+    {
+      "code": "BRC",
+      "name": "VADODARA JN",
+      "zone": null,
+      "lat": 22.310756,
+      "lon": 73.181065
+    },
+    {
+      "code": "BSL",
+      "name": "BHUSAVAL JN",
+      "zone": null,
+      "lat": 21.0472812,
+      "lon": 75.78867170000001
+    },
+    {
+      "code": "BVI",
+      "name": "BORIVALI",
+      "zone": "WR",
+      "lat": 19.228739,
+      "lon": 72.85641199999999
+    },
+    {
+      "code": "BZA",
+      "name": "VIJAYAWADA JN",
+      "zone": null,
+      "lat": 16.518262,
+      "lon": 80.61864800000001
+    },
+    {
+      "code": "CNB",
+      "name": "KANPUR CENTRAL",
+      "zone": null,
+      "lat": 26.454240000000002,
+      "lon": 80.350966
+    },
+    {
+      "code": "DD",
+      "name": "DAUND JN",
+      "zone": null,
+      "lat": 18.463547,
+      "lon": 74.578622
+    },
+    {
+      "code": "DHN",
+      "name": "DHANBAD JN",
+      "zone": null,
+      "lat": 23.790966,
+      "lon": 86.428956
+    },
+    {
+      "code": "DKAE",
+      "name": "DANKUNI",
+      "zone": null,
+      "lat": 22.677422,
+      "lon": 88.291491
+    },
+    {
+      "code": "DMM",
+      "name": "DHARMAVARAM JN",
+      "zone": null,
+      "lat": 14.424368999999999,
+      "lon": 77.717115
+    },
+    {
+      "code": "ET",
+      "name": "ITARSI JN",
+      "zone": null,
+      "lat": 22.608258,
+      "lon": 77.767128
+    },
+    {
+      "code": "GAYA",
+      "name": "GAYA JN",
+      "zone": null,
+      "lat": 24.803978,
+      "lon": 84.999294
+    },
+    {
+      "code": "GR",
+      "name": "GULBARGA",
+      "zone": null,
+      "lat": 17.314372,
+      "lon": 76.82443799999999
+    },
+    {
+      "code": "GTL",
+      "name": "GUNTAKAL JN",
+      "zone": null,
+      "lat": 15.17556,
+      "lon": 77.36661099999999
+    },
+    {
+      "code": "GWL",
+      "name": "GWALIOR",
+      "zone": null,
+      "lat": 26.216483,
+      "lon": 78.18229199999999
+    },
+    {
+      "code": "GY",
+      "name": "GOOTY",
+      "zone": null,
+      "lat": 15.149208,
+      "lon": 77.625823
+    },
+    {
+      "code": "HUP",
+      "name": "HINDUPUR",
+      "zone": null,
+      "lat": 13.819144000000001,
+      "lon": 77.500362
+    },
+    {
+      "code": "HWH",
+      "name": "HOWRAH JN",
+      "zone": null,
+      "lat": 22.584077999999998,
+      "lon": 88.34099900000001
+    },
+    {
+      "code": "JHS",
+      "name": "JHANSI JN",
+      "zone": null,
+      "lat": 25.443585,
+      "lon": 78.55298499999999
+    },
+    {
+      "code": "JL",
+      "name": "JALGAON JN",
+      "zone": null,
+      "lat": 21.018114999999998,
+      "lon": 75.56287499999999
+    },
+    {
+      "code": "KNW",
+      "name": "KHANDWA",
+      "zone": "CR",
+      "lat": 21.823596,
+      "lon": 76.353227
+    },
+    {
+      "code": "KOTA",
+      "name": "KOTA JN",
+      "zone": null,
+      "lat": 25.223553,
+      "lon": 75.8805
+    },
+    {
+      "code": "KPG",
+      "name": "KOPARGAON",
+      "zone": null,
+      "lat": 19.902943,
+      "lon": 74.503328
+    },
+    {
+      "code": "KWV",
+      "name": "KURDUVADI",
+      "zone": null,
+      "lat": 18.091348,
+      "lon": 75.41711799999999
+    },
+    {
+      "code": "MALM",
+      "name": "MANTHRALAYAM RD",
+      "zone": null,
+      "lat": 15.949035,
+      "lon": 77.299196
+    },
+    {
+      "code": "MAS",
+      "name": "CHENNAI CENTRAL",
+      "zone": null,
+      "lat": 13.0847613,
+      "lon": 80.27485630000001
+    },
+    {
+      "code": "MGS",
+      "name": "MUGHAL SARAI JN",
+      "zone": null,
+      "lat": 25.278149,
+      "lon": 83.11925000000001
+    },
+    {
+      "code": "MMR",
+      "name": "MANMAD JN",
+      "zone": null,
+      "lat": 20.249887,
+      "lon": 74.438305
+    },
+    {
+      "code": "MTJ",
+      "name": "MATHURA JN",
+      "zone": null,
+      "lat": 27.480145,
+      "lon": 77.67311699999999
+    },
+    {
+      "code": "MZP",
+      "name": "MIRZAPUR",
+      "zone": null,
+      "lat": 25.13435,
+      "lon": 82.56986900000001
+    },
+    {
+      "code": "NAD",
+      "name": "NAGDA JN",
+      "zone": null,
+      "lat": 23.45592,
+      "lon": 75.41249099999999
+    },
+    {
+      "code": "NDLS",
+      "name": "NEW DELHI",
+      "zone": null,
+      "lat": 28.642314,
+      "lon": 77.22000399999999
+    },
+    {
+      "code": "NGP",
+      "name": "NAGPUR",
+      "zone": null,
+      "lat": 21.153567,
+      "lon": 79.089004
+    },
+    {
+      "code": "NZM",
+      "name": "H NIZAMUDDIN",
+      "zone": null,
+      "lat": 28.587329999999998,
+      "lon": 77.254249
+    },
+    {
+      "code": "PNME",
+      "name": "PARASNATH",
+      "zone": null,
+      "lat": 23.987971,
+      "lon": 86.037862
+    },
+    {
+      "code": "RC",
+      "name": "RAICHUR",
+      "zone": null,
+      "lat": 16.192441000000002,
+      "lon": 77.339165
+    },
+    {
+      "code": "RTM",
+      "name": "RATLAM JN",
+      "zone": null,
+      "lat": 23.34038,
+      "lon": 75.050826
+    },
+    {
+      "code": "SBC",
+      "name": "BANGALORE CY JN",
+      "zone": "SWR",
+      "lat": 12.977595,
+      "lon": 77.56808299999999
+    },
+    {
+      "code": "SSPN",
+      "name": "SAI P NILAYAM",
+      "zone": null,
+      "lat": 14.160468,
+      "lon": 77.757559
+    },
+    {
+      "code": "ST",
+      "name": "SURAT",
+      "zone": null,
+      "lat": 21.206568,
+      "lon": 72.840793
+    },
+    {
+      "code": "SUR",
+      "name": "SOLAPUR JN",
+      "zone": null,
+      "lat": 17.664496,
+      "lon": 75.893401
+    },
+    {
+      "code": "SWM",
+      "name": "SAWAI MADHOPUR",
+      "zone": null,
+      "lat": 26.018279,
+      "lon": 76.35622
+    },
+    {
+      "code": "TKJ",
+      "name": "TILAK BRIDGE",
+      "zone": null,
+      "lat": 28.627633,
+      "lon": 77.237995
+    },
+    {
+      "code": "VAPI",
+      "name": "VAPI",
+      "zone": "WR",
+      "lat": 20.374337999999998,
+      "lon": 72.90912700000001
+    },
+    {
+      "code": "WADI",
+      "name": "WADI",
+      "zone": null,
+      "lat": 17.054312,
+      "lon": 76.99154999999999
+    },
+    {
+      "code": "WL",
+      "name": "WARANGAL",
+      "zone": "SCR",
+      "lat": 17.972477,
+      "lon": 79.604929
+    },
+    {
+      "code": "YG",
+      "name": "YADGIR",
+      "zone": null,
+      "lat": 16.744396,
+      "lon": 77.13036600000001
+    },
+    {
+      "code": "YNK",
+      "name": "YELHANKA JN",
+      "zone": null,
+      "lat": 13.102795,
+      "lon": 77.593069
+    }
+  ],
+  "routes": [
+    {
+      "train_number": "12301",
+      "train_name": "KOLKATA RAJDHNI",
+      "total_distance_km": 1447.0,
+      "stops": [
+        {
+          "sequence": 0,
+          "station_code": "HWH",
+          "arrival_seconds": null,
+          "departure_seconds": 60900,
+          "distance_km": 0.0
+        },
+        {
+          "sequence": 1,
+          "station_code": "DKAE",
+          "arrival_seconds": 62100,
+          "departure_seconds": 62160,
+          "distance_km": 15.0
+        },
+        {
+          "sequence": 2,
+          "station_code": "DHN",
+          "arrival_seconds": 71760,
+          "departure_seconds": 72060,
+          "distance_km": 259.0
+        },
+        {
+          "sequence": 3,
+          "station_code": "PNME",
+          "arrival_seconds": 73980,
+          "departure_seconds": 74040,
+          "distance_km": 306.0
+        },
+        {
+          "sequence": 4,
+          "station_code": "GAYA",
+          "arrival_seconds": 81300,
+          "departure_seconds": 81480,
+          "distance_km": 458.0
+        },
+        {
+          "sequence": 5,
+          "station_code": "MGS",
+          "arrival_seconds": 89220,
+          "departure_seconds": 89820,
+          "distance_km": 661.0
+        },
+        {
+          "sequence": 6,
+          "station_code": "MZP",
+          "arrival_seconds": 91800,
+          "departure_seconds": 91860,
+          "distance_km": 724.0
+        },
+        {
+          "sequence": 7,
+          "station_code": "ALD",
+          "arrival_seconds": 96180,
+          "departure_seconds": 96360,
+          "distance_km": 813.0
+        },
+        {
+          "sequence": 8,
+          "station_code": "CNB",
+          "arrival_seconds": 103500,
+          "departure_seconds": 103980,
+          "distance_km": 1008.0
+        },
+        {
+          "sequence": 9,
+          "station_code": "TKJ",
+          "arrival_seconds": 121200,
+          "departure_seconds": 121260,
+          "distance_km": 1444.0
+        },
+        {
+          "sequence": 10,
+          "station_code": "NDLS",
+          "arrival_seconds": 122400,
+          "departure_seconds": null,
+          "distance_km": 1447.0
+        }
+      ]
+    },
+    {
+      "train_number": "12621",
+      "train_name": "TAMIL NADU EXP",
+      "total_distance_km": 2182.0,
+      "stops": [
+        {
+          "sequence": 0,
+          "station_code": "MAS",
+          "arrival_seconds": null,
+          "departure_seconds": 79200,
+          "distance_km": 0.0
+        },
+        {
+          "sequence": 1,
+          "station_code": "BZA",
+          "arrival_seconds": 101400,
+          "departure_seconds": 102000,
+          "distance_km": 431.0
+        },
+        {
+          "sequence": 2,
+          "station_code": "WL",
+          "arrival_seconds": 111780,
+          "departure_seconds": 111900,
+          "distance_km": 639.0
+        },
+        {
+          "sequence": 3,
+          "station_code": "BPQ",
+          "arrival_seconds": 126000,
+          "departure_seconds": 126600,
+          "distance_km": 881.0
+        },
+        {
+          "sequence": 4,
+          "station_code": "NGP",
+          "arrival_seconds": 137400,
+          "departure_seconds": 138000,
+          "distance_km": 1093.0
+        },
+        {
+          "sequence": 5,
+          "station_code": "ET",
+          "arrival_seconds": 153600,
+          "departure_seconds": 153780,
+          "distance_km": 1390.0
+        },
+        {
+          "sequence": 6,
+          "station_code": "BPL",
+          "arrival_seconds": 159300,
+          "departure_seconds": 159600,
+          "distance_km": 1481.0
+        },
+        {
+          "sequence": 7,
+          "station_code": "JHS",
+          "arrival_seconds": 173760,
+          "departure_seconds": 174480,
+          "distance_km": 1772.0
+        },
+        {
+          "sequence": 8,
+          "station_code": "GWL",
+          "arrival_seconds": 178620,
+          "departure_seconds": 178800,
+          "distance_km": 1869.0
+        },
+        {
+          "sequence": 9,
+          "station_code": "AGC",
+          "arrival_seconds": 186600,
+          "departure_seconds": 186780,
+          "distance_km": 1988.0
+        },
+        {
+          "sequence": 10,
+          "station_code": "NZM",
+          "arrival_seconds": 196800,
+          "departure_seconds": 196920,
+          "distance_km": 2175.0
+        },
+        {
+          "sequence": 11,
+          "station_code": "NDLS",
+          "arrival_seconds": 198300,
+          "departure_seconds": null,
+          "distance_km": 2182.0
+        }
+      ]
+    },
+    {
+      "train_number": "12622",
+      "train_name": "TAMIL NADU EXP",
+      "total_distance_km": 2182.0,
+      "stops": [
+        {
+          "sequence": 0,
+          "station_code": "NDLS",
+          "arrival_seconds": null,
+          "departure_seconds": 81000,
+          "distance_km": 0.0
+        },
+        {
+          "sequence": 1,
+          "station_code": "AGC",
+          "arrival_seconds": 90420,
+          "departure_seconds": 90600,
+          "distance_km": 195.0
+        },
+        {
+          "sequence": 2,
+          "station_code": "GWL",
+          "arrival_seconds": 95400,
+          "departure_seconds": 95580,
+          "distance_km": 313.0
+        },
+        {
+          "sequence": 3,
+          "station_code": "JHS",
+          "arrival_seconds": 100800,
+          "departure_seconds": 101520,
+          "distance_km": 410.0
+        },
+        {
+          "sequence": 4,
+          "station_code": "BPL",
+          "arrival_seconds": 114600,
+          "departure_seconds": 115200,
+          "distance_km": 701.0
+        },
+        {
+          "sequence": 5,
+          "station_code": "ET",
+          "arrival_seconds": 121200,
+          "departure_seconds": 121500,
+          "distance_km": 793.0
+        },
+        {
+          "sequence": 6,
+          "station_code": "NGP",
+          "arrival_seconds": 137700,
+          "departure_seconds": 138600,
+          "distance_km": 1090.0
+        },
+        {
+          "sequence": 7,
+          "station_code": "BPQ",
+          "arrival_seconds": 149100,
+          "departure_seconds": 149700,
+          "distance_km": 1301.0
+        },
+        {
+          "sequence": 8,
+          "station_code": "WL",
+          "arrival_seconds": 161280,
+          "departure_seconds": 161400,
+          "distance_km": 1544.0
+        },
+        {
+          "sequence": 9,
+          "station_code": "BZA",
+          "arrival_seconds": 173700,
+          "departure_seconds": 174300,
+          "distance_km": 1752.0
+        },
+        {
+          "sequence": 10,
+          "station_code": "MAS",
+          "arrival_seconds": 198600,
+          "departure_seconds": null,
+          "distance_km": 2182.0
+        }
+      ]
+    },
+    {
+      "train_number": "12627",
+      "train_name": "KARNATAKA EXP",
+      "total_distance_km": 2406.0,
+      "stops": [
+        {
+          "sequence": 0,
+          "station_code": "SBC",
+          "arrival_seconds": null,
+          "departure_seconds": 69600,
+          "distance_km": 0.0
+        },
+        {
+          "sequence": 1,
+          "station_code": "BNC",
+          "arrival_seconds": 70200,
+          "departure_seconds": 70320,
+          "distance_km": 5.0
+        },
+        {
+          "sequence": 2,
+          "station_code": "BNCE",
+          "arrival_seconds": 70560,
+          "departure_seconds": 70620,
+          "distance_km": 8.0
+        },
+        {
+          "sequence": 3,
+          "station_code": "YNK",
+          "arrival_seconds": 71880,
+          "departure_seconds": 72000,
+          "distance_km": 27.0
+        },
+        {
+          "sequence": 4,
+          "station_code": "HUP",
+          "arrival_seconds": 76440,
+          "departure_seconds": 76500,
+          "distance_km": 111.0
+        },
+        {
+          "sequence": 5,
+          "station_code": "SSPN",
+          "arrival_seconds": 79380,
+          "departure_seconds": 79500,
+          "distance_km": 168.0
+        },
+        {
+          "sequence": 6,
+          "station_code": "DMM",
+          "arrival_seconds": 82380,
+          "departure_seconds": 82500,
+          "distance_km": 201.0
+        },
+        {
+          "sequence": 7,
+          "station_code": "ATP",
+          "arrival_seconds": 84540,
+          "departure_seconds": 84600,
+          "distance_km": 235.0
+        },
+        {
+          "sequence": 8,
+          "station_code": "GY",
+          "arrival_seconds": 88140,
+          "departure_seconds": 88200,
+          "distance_km": 292.0
+        },
+        {
+          "sequence": 9,
+          "station_code": "GTL",
+          "arrival_seconds": 89700,
+          "departure_seconds": 90000,
+          "distance_km": 320.0
+        },
+        {
+          "sequence": 10,
+          "station_code": "AD",
+          "arrival_seconds": 92340,
+          "departure_seconds": 92400,
+          "distance_km": 372.0
+        },
+        {
+          "sequence": 11,
+          "station_code": "MALM",
+          "arrival_seconds": 95880,
+          "departure_seconds": 96000,
+          "distance_km": 413.0
+        },
+        {
+          "sequence": 12,
+          "station_code": "RC",
+          "arrival_seconds": 97140,
+          "departure_seconds": 97200,
+          "distance_km": 441.0
+        },
+        {
+          "sequence": 13,
+          "station_code": "YG",
+          "arrival_seconds": 100800,
+          "departure_seconds": 100920,
+          "distance_km": 510.0
+        },
+        {
+          "sequence": 14,
+          "station_code": "WADI",
+          "arrival_seconds": 104100,
+          "departure_seconds": 104400,
+          "distance_km": 549.0
+        },
+        {
+          "sequence": 15,
+          "station_code": "GR",
+          "arrival_seconds": 106740,
+          "departure_seconds": 106800,
+          "distance_km": 585.0
+        },
+        {
+          "sequence": 16,
+          "station_code": "SUR",
+          "arrival_seconds": 114000,
+          "departure_seconds": 114600,
+          "distance_km": 698.0
+        },
+        {
+          "sequence": 17,
+          "station_code": "KWV",
+          "arrival_seconds": 118200,
+          "departure_seconds": 118260,
+          "distance_km": 777.0
+        },
+        {
+          "sequence": 18,
+          "station_code": "DD",
+          "arrival_seconds": 124020,
+          "departure_seconds": 124200,
+          "distance_km": 886.0
+        },
+        {
+          "sequence": 19,
+          "station_code": "ANG",
+          "arrival_seconds": 129420,
+          "departure_seconds": 129600,
+          "distance_km": 970.0
+        },
+        {
+          "sequence": 20,
+          "station_code": "BAP",
+          "arrival_seconds": 132960,
+          "departure_seconds": 133020,
+          "distance_km": 1037.0
+        },
+        {
+          "sequence": 21,
+          "station_code": "KPG",
+          "arrival_seconds": 135540,
+          "departure_seconds": 135600,
+          "distance_km": 1081.0
+        },
+        {
+          "sequence": 22,
+          "station_code": "MMR",
+          "arrival_seconds": 139500,
+          "departure_seconds": 140100,
+          "distance_km": 1123.0
+        },
+        {
+          "sequence": 23,
+          "station_code": "JL",
+          "arrival_seconds": 146340,
+          "departure_seconds": 146400,
+          "distance_km": 1282.0
+        },
+        {
+          "sequence": 24,
+          "station_code": "BSL",
+          "arrival_seconds": 148200,
+          "departure_seconds": 148800,
+          "distance_km": 1307.0
+        },
+        {
+          "sequence": 25,
+          "station_code": "BAU",
+          "arrival_seconds": 151440,
+          "departure_seconds": 151500,
+          "distance_km": 1361.0
+        },
+        {
+          "sequence": 26,
+          "station_code": "KNW",
+          "arrival_seconds": 156600,
+          "departure_seconds": 156900,
+          "distance_km": 1430.0
+        },
+        {
+          "sequence": 27,
+          "station_code": "ET",
+          "arrival_seconds": 165000,
+          "departure_seconds": 165300,
+          "distance_km": 1613.0
+        },
+        {
+          "sequence": 28,
+          "station_code": "BPL",
+          "arrival_seconds": 170700,
+          "departure_seconds": 171000,
+          "distance_km": 1705.0
+        },
+        {
+          "sequence": 29,
+          "station_code": "BINA",
+          "arrival_seconds": 178200,
+          "departure_seconds": 178320,
+          "distance_km": 1843.0
+        },
+        {
+          "sequence": 30,
+          "station_code": "JHS",
+          "arrival_seconds": 185580,
+          "departure_seconds": 186300,
+          "distance_km": 1996.0
+        },
+        {
+          "sequence": 31,
+          "station_code": "GWL",
+          "arrival_seconds": 190440,
+          "departure_seconds": 190740,
+          "distance_km": 2093.0
+        },
+        {
+          "sequence": 32,
+          "station_code": "AGC",
+          "arrival_seconds": 196800,
+          "departure_seconds": 197100,
+          "distance_km": 2212.0
+        },
+        {
+          "sequence": 33,
+          "station_code": "MTJ",
+          "arrival_seconds": 200100,
+          "departure_seconds": 200220,
+          "distance_km": 2265.0
+        },
+        {
+          "sequence": 34,
+          "station_code": "NZM",
+          "arrival_seconds": 208680,
+          "departure_seconds": 208800,
+          "distance_km": 2399.0
+        },
+        {
+          "sequence": 35,
+          "station_code": "NDLS",
+          "arrival_seconds": 210600,
+          "departure_seconds": null,
+          "distance_km": 2406.0
+        }
+      ]
+    },
+    {
+      "train_number": "12952",
+      "train_name": "MUMBAI RAJDHANI",
+      "total_distance_km": 1384.0,
+      "stops": [
+        {
+          "sequence": 0,
+          "station_code": "NDLS",
+          "arrival_seconds": null,
+          "departure_seconds": 59100,
+          "distance_km": 0.0
+        },
+        {
+          "sequence": 1,
+          "station_code": "KOTA",
+          "arrival_seconds": 75300,
+          "departure_seconds": 75900,
+          "distance_km": 465.0
+        },
+        {
+          "sequence": 2,
+          "station_code": "RTM",
+          "arrival_seconds": 86520,
+          "departure_seconds": 86700,
+          "distance_km": 731.0
+        },
+        {
+          "sequence": 3,
+          "station_code": "BRC",
+          "arrival_seconds": 99060,
+          "departure_seconds": 99660,
+          "distance_km": 993.0
+        },
+        {
+          "sequence": 4,
+          "station_code": "ST",
+          "arrival_seconds": 105180,
+          "departure_seconds": 105480,
+          "distance_km": 1122.0
+        },
+        {
+          "sequence": 5,
+          "station_code": "BVI",
+          "arrival_seconds": 114540,
+          "departure_seconds": 114660,
+          "distance_km": 1355.0
+        },
+        {
+          "sequence": 6,
+          "station_code": "BCT",
+          "arrival_seconds": 117300,
+          "departure_seconds": null,
+          "distance_km": 1384.0
+        }
+      ]
+    },
+    {
+      "train_number": "12953",
+      "train_name": "AUG KR RAJ EXP",
+      "total_distance_km": 1377.0,
+      "stops": [
+        {
+          "sequence": 0,
+          "station_code": "BCT",
+          "arrival_seconds": null,
+          "departure_seconds": 63600,
+          "distance_km": 0.0
+        },
+        {
+          "sequence": 1,
+          "station_code": "ADH",
+          "arrival_seconds": 64860,
+          "departure_seconds": 64980,
+          "distance_km": 18.0
+        },
+        {
+          "sequence": 2,
+          "station_code": "BVI",
+          "arrival_seconds": 65820,
+          "departure_seconds": 65940,
+          "distance_km": 30.0
+        },
+        {
+          "sequence": 3,
+          "station_code": "VAPI",
+          "arrival_seconds": 71220,
+          "departure_seconds": 71340,
+          "distance_km": 170.0
+        },
+        {
+          "sequence": 4,
+          "station_code": "BL",
+          "arrival_seconds": 72540,
+          "departure_seconds": 72660,
+          "distance_km": 194.0
+        },
+        {
+          "sequence": 5,
+          "station_code": "ST",
+          "arrival_seconds": 75540,
+          "departure_seconds": 75840,
+          "distance_km": 263.0
+        },
+        {
+          "sequence": 6,
+          "station_code": "BH",
+          "arrival_seconds": 78180,
+          "departure_seconds": 78300,
+          "distance_km": 322.0
+        },
+        {
+          "sequence": 7,
+          "station_code": "BRC",
+          "arrival_seconds": 81300,
+          "departure_seconds": 81900,
+          "distance_km": 392.0
+        },
+        {
+          "sequence": 8,
+          "station_code": "RTM",
+          "arrival_seconds": 94680,
+          "departure_seconds": 94800,
+          "distance_km": 653.0
+        },
+        {
+          "sequence": 9,
+          "station_code": "NAD",
+          "arrival_seconds": 97800,
+          "departure_seconds": 97920,
+          "distance_km": 695.0
+        },
+        {
+          "sequence": 10,
+          "station_code": "KOTA",
+          "arrival_seconds": 105000,
+          "departure_seconds": 105600,
+          "distance_km": 920.0
+        },
+        {
+          "sequence": 11,
+          "station_code": "SWM",
+          "arrival_seconds": 109560,
+          "departure_seconds": 109680,
+          "distance_km": 1027.0
+        },
+        {
+          "sequence": 12,
+          "station_code": "MTJ",
+          "arrival_seconds": 118800,
+          "departure_seconds": 118920,
+          "distance_km": 1244.0
+        },
+        {
+          "sequence": 13,
+          "station_code": "NZM",
+          "arrival_seconds": 125700,
+          "departure_seconds": null,
+          "distance_km": 1377.0
+        }
+      ]
+    }
+  ]
+}
