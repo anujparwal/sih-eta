@@ -1,4 +1,4 @@
-"""Infrastructure and synthetic ingestion; ETA APIs arrive in later phases."""
+"""Synthetic telemetry, baseline ETA contracts and dependency health."""
 
 import asyncio
 import os
@@ -10,9 +10,11 @@ from redis.asyncio import Redis
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.ingest import router as ingest_router
+from app.read_api import router as read_router
 
-app = FastAPI(title="Dynamic Train ETA", version="0.2.0")
+app = FastAPI(title="Dynamic Train ETA", version="0.3.0")
 app.include_router(ingest_router)
+app.include_router(read_router)
 
 
 @app.exception_handler(SQLAlchemyError)

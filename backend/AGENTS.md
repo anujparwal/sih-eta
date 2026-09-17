@@ -1,8 +1,10 @@
 # Backend
 
 Follow the root guide. Use Python 3.12, FastAPI, SQLAlchemy 2, Alembic and PostGIS.
-Phase 2 exposes `/health`, `/ready`, `/ingest/position` and `/ingest/event`.
-Train/ETA contracts and Redis pub/sub belong to later phases.
+Phase 3 exposes health/ingestion, train ETA/history, station arrivals, fleet status
+and polling WebSocket snapshots. Redis pub/sub remains Phase 4. Preserve the
+versioned response shapes and independent baseline fields when adding the model.
+Never substitute invented zeros for unknown history or observed station timing.
 
 Run `pytest`, `ruff check .` and `ruff format --check .` before finishing.
 For full coverage, set TEST_DATABASE_URL to a disposable database ending in

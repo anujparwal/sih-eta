@@ -145,6 +145,7 @@ class Train:
         return {
             "id": str(uuid4()),
             "journey_id": self.journey_id,
+            "journey_started_at": self.started_at.isoformat(),
             "train_number": self.route["train_number"],
             "timestamp": (self.started_at + timedelta(seconds=self.elapsed)).isoformat(),
             "lat": location.lat,

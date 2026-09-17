@@ -1,0 +1,76 @@
+{
+  "generated_at": "2026-09-17T18:40:00Z",
+  "source": "simulator",
+  "trains": [
+    {
+      "train_number": "12301",
+      "train_name": "KOLKATA RAJDHNI",
+      "origin": "HWH",
+      "destination": "NDLS",
+      "status": "active",
+      "latest_position": {
+        "id": "11111111-1111-4111-8111-111111111111",
+        "journey_id": "22222222-2222-4222-8222-222222222222",
+        "train_number": "12301",
+        "timestamp": "2026-09-17T18:40:00Z",
+        "source": "simulator",
+        "journey_started_at": "2026-09-17T01:35:00Z",
+        "lat": 28.638450578947367,
+        "lon": 77.2247384736842,
+        "distance_km": 1446.2105263157894,
+        "delay_minutes": 5.0,
+        "current_speed_kmh": 0.0,
+        "last_station": "TKJ",
+        "next_station": "NDLS"
+      }
+    },
+    {
+      "train_number": "12621",
+      "train_name": "TAMIL NADU EXP",
+      "origin": "MAS",
+      "destination": "NDLS",
+      "status": "no_data",
+      "latest_position": null
+    },
+    {
+      "train_number": "12622",
+      "train_name": "TAMIL NADU EXP",
+      "origin": "NDLS",
+      "destination": "MAS",
+      "status": "no_data",
+      "latest_position": null
+    },
+    {
+      "train_number": "12627",
+      "train_name": "KARNATAKA EXP",
+      "origin": "SBC",
+      "destination": "NDLS",
+      "status": "no_data",
+      "latest_position": null
+    },
+    {
+      "train_number": "12952",
+      "train_name": "MUMBAI RAJDHANI",
+      "origin": "NDLS",
+      "destination": "BCT",
+      "status": "no_data",
+      "latest_position": null
+    },
+    {
+      "train_number": "12953",
+      "train_name": "AUG KR RAJ EXP",
+      "origin": "BCT",
+      "destination": "NZM",
+      "status": "no_data",
+      "latest_position": null
+    }
+  ],
+  "total_trains": 6,
+  "active_trains": 1,
+  "stale_trains": 0,
+  "completed_trains": 0,
+  "no_data_trains": 5,
+  "delayed_active_trains": 1,
+  "mean_active_delay_minutes": 5.0,
+  "max_active_delay_minutes": 5.0
+}
