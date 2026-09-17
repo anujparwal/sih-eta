@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-09-17T18:40:00Z",
+  "station_code": "NDLS",
+  "source": "simulator",
+  "arrivals": [
+    {
+      "station_code": "NDLS",
+      "station_name": "NEW DELHI",
+      "sequence": 10,
+      "distance_remaining_km": 0.789473684210634,
+      "scheduled_arrival": "2026-09-17T18:40:00Z",
+      "baseline_eta": "2026-09-17T18:45:00Z",
+      "eta": "2026-09-17T18:45:00Z",
+      "prediction_method": "current_delay_carryover",
+      "model_version": null,
+      "train_number": "12301",
+      "train_name": "KOLKATA RAJDHNI",
+      "journey_id": "22222222-2222-4222-8222-222222222222",
+      "as_of": "2026-09-17T18:40:00Z",
+      "status": "active",
+      "timing_basis": "provided"
+    }
+  ]
+}

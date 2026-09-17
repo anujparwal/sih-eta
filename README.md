@@ -1,13 +1,14 @@
 # Dynamic Train ETA — SIH 2026
 
-Phase 2 data foundation for coaching train ETA forecasting on Indian routes:
+Phase 3 baseline ETA API for coaching trains on Indian routes:
 FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind shell, and a Python
 telemetry simulator. Six **real historical routes** and 63 stations are seeded
 from attributed public data. Train positions and incidents are **synthetic**.
 
 The future MVP adds XGBoost with SHAP, measured comparison against a
 current-delay carryover baseline, and passenger, station board and control room
-views. Predictions and operational dashboards are not implemented yet.
+views. The current API implements the current-delay carryover baseline and
+shared features; ML predictions and operational dashboards remain for later phases.
 
 ## Start locally
 
@@ -27,7 +28,7 @@ The backend applies Alembic migrations and seeds the network before serving.
 Seeding is idempotent and does not delete telemetry. All four default services
 should become healthy. Open [the frontend](http://localhost:3000) or
 [API docs](http://localhost:8000/docs). The frontend is still a placeholder;
-inspect telemetry in PostgreSQL during this phase.
+use the train, ETA, history, station-arrivals and fleet APIs during this phase.
 
 ```sh
 curl --fail http://localhost:8000/ready
@@ -53,12 +54,18 @@ docker compose --profile simulation build simulator
 SIMULATION_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 docker compose --profile simulation run --rm -T simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
 docker compose run --rm -T backend python -m app.verify_telemetry --since "$SIMULATION_START"
+docker compose run --rm -T backend python -m app.verify_api
 ```
 
 The verifier requires at least 20 samples spanning at least 110 seconds per
 train, forward movement, plausible speeds, recorded events and observable
 delay. It prints per-train counts and distance advanced. GitHub Actions runs
 this full check on Docker Engine for each PR, alongside all tests and builds.
+The API verifier checks all six baseline comparisons, journey history, station
+boards, 12 initial/reconnected WebSocket snapshots and one HTTP-to-WebSocket
+update. It appends one synthetic held-position sample to verify update delivery.
+Run it immediately after simulation stops, before the 30-second freshness window
+expires, and with no other simulator active.
 
 Inspect stored data directly:
 
@@ -68,6 +75,26 @@ docker compose exec postgres psql -U sih_eta -d sih_eta -c 'SELECT train_number,
 ```
 
 These examples use the default local credentials; adapt them if `.env` differs.
+
+## Baseline API
+
+With simulation running (or within 30 seconds of stopping it):
+
+```sh
+curl --fail 'http://localhost:8000/trains?active_only=true'
+curl --fail http://localhost:8000/trains/12301/eta
+curl --fail 'http://localhost:8000/trains/12301/history?limit=10'
+curl --fail http://localhost:8000/stations/NDLS/arrivals
+curl --fail http://localhost:8000/control/fleet-status
+```
+
+Connect to `ws://localhost:8000/ws/trains/12301` for an initial ETA snapshot and
+changed snapshots polled once per second. Every prediction is explicitly a
+**current-delay carryover baseline**: shifted timetable arrival + current delay.
+The API keeps a separate baseline field for later model comparison. Missing
+history stays null; stale telemetry is labeled and excluded from station boards
+by default. See the [API contract](docs/api_contract.md) for complete JSON
+examples, feature formulas, pagination, error codes and legacy timing limits.
 
 ## Tests and checks
 
@@ -116,13 +143,13 @@ run `python3 simulator/simulate.py --duration 120` from the repository root.
 ## Layout and data
 
 ```text
-backend/    SQLAlchemy models, Alembic migrations, seed/ingestion, tests
+backend/    Models, migrations, ingestion, baseline ETA/features, REST/WS APIs, tests
 simulator/  Real-time synthetic journeys and disruptions
 data/       Reproducible six-route historical fixture
 scripts/    Checksum-verified source extraction
 frontend/   Next.js App Router, TypeScript and Tailwind shell
 ml/         Future training, model exports and evaluation
-docs/       Architecture, ingestion contract and data provenance
+docs/       Architecture, complete API contract and data provenance
 ```
 
 See [data sources](docs/data_sources.md) for pinned URLs, checksums, attribution,

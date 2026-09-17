@@ -3,8 +3,8 @@
 ## Scope and decisions
 
 This is the SIH 2026 Dynamic ETA Forecast for Coaching Trains monorepo.
-Phase 2 adds a sourced historical network, PostGIS schema/migrations, synthetic
-telemetry ingestion and a six-train simulator. ETA predictions, model evaluation,
+Phase 3 adds typed REST/WebSocket contracts, the current-delay carryover baseline
+and shared as-of features on the Phase 2 network/simulator. Model evaluation,
 Redis publishing and the three operational views are not implemented yet.
 
 The upgraded `sih_plan.md` takes precedence over the older Astra plan where
@@ -63,8 +63,8 @@ Integration tests require a dedicated database whose name ends in `_test`; the
 migration round-trip test recreates its application tables. Never use the running
 application database for tests. Without TEST_DATABASE_URL the database tests skip.
 Simulator tests are included in the backend suite. Run the two-minute smoke check
-in README.md before declaring telemetry work complete. There are no ML or browser
-flow tests yet. Use Ruff with `--config backend/pyproject.toml` for root Python scripts.
+in README.md before declaring telemetry work complete. The same smoke also validates the read APIs and real WebSocket delivery.
+There are no ML or browser flow tests yet. Use Ruff with `--config backend/pyproject.toml` for root Python scripts.
 
 Keep the PostGIS choice: indexed PostgreSQL time-series tables replace the older
 plan’s TimescaleDB hypertable. Use timezone-aware UTC telemetry and unwrapped IST

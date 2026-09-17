@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class Telemetry(BaseModel):
@@ -22,6 +22,7 @@ class Telemetry(BaseModel):
 
 
 class PositionIn(Telemetry):
+    journey_started_at: AwareDatetime | None = None
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
     distance_km: float = Field(ge=0)
@@ -29,6 +30,14 @@ class PositionIn(Telemetry):
     current_speed_kmh: float = Field(ge=0, le=200)
     last_station: str = Field(pattern=r"^[A-Z0-9]{1,10}$")
     next_station: str | None = Field(default=None, pattern=r"^[A-Z0-9]{1,10}$")
+
+    @model_validator(mode="after")
+    def valid_journey_start(self):
+        if self.journey_started_at is not None:
+            self.journey_started_at = self.journey_started_at.astimezone(UTC)
+            if self.journey_started_at > self.timestamp:
+                raise ValueError("journey_started_at must not follow timestamp")
+        return self
 
 
 class EventIn(Telemetry):

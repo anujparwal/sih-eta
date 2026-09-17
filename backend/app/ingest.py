@@ -1,4 +1,4 @@
-"""Validated, idempotent ingestion; no Redis publishing or ETA business logic yet."""
+"""Validated, idempotent ingestion; Redis publishing belongs to Phase 4."""
 
 from typing import Annotated
 
@@ -97,6 +97,8 @@ def ingest_position(payload: PositionIn, response: Response, session: Database) 
     ):
         raise HTTPException(409, "Journey samples must advance in time without moving backwards")
     if previous:
+        if payload.journey_started_at != previous.journey_started_at:
+            raise HTTPException(409, "Journey start must remain unchanged within a journey")
         elapsed = (payload.timestamp - previous.timestamp).total_seconds()
         if payload.distance_km - previous.distance_km > elapsed * 200 / 3600 + 0.01:
             raise HTTPException(422, "Distance jump exceeds the maximum supported train speed")

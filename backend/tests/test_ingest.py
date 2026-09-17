@@ -53,7 +53,7 @@ def test_positions_cannot_move_backwards_or_replace_timestamp(db, request_api, p
     assert (
         request_api("POST", "/ingest/position", {**position, "id": str(uuid4())}).status_code == 409
     )
-    older = {**position, "id": str(uuid4()), "timestamp": "2025-12-31T23:59:59Z"}
+    older = {**position, "id": str(uuid4()), "timestamp": "2026-01-01T00:00:04Z"}
     assert request_api("POST", "/ingest/position", older).status_code == 409
 
 

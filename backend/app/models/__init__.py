@@ -71,6 +71,7 @@ class LivePosition(Base):
     journey_id: Mapped[UUID] = mapped_column(Uuid)
     train_number: Mapped[str] = mapped_column(ForeignKey("routes.train_number"))
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    journey_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     lat: Mapped[float] = mapped_column(Float)
     lon: Mapped[float] = mapped_column(Float)
     geom = mapped_column(Geometry("POINT", srid=4326), nullable=False)
@@ -82,6 +83,7 @@ class LivePosition(Base):
     source: Mapped[str] = mapped_column(String(20), default="simulator")
     __table_args__ = (
         UniqueConstraint("train_number", "journey_id", "timestamp"),
+        CheckConstraint("journey_started_at <= timestamp", name="ck_position_journey_start"),
         Index("ix_positions_train_time", "train_number", "timestamp"),
         Index("ix_positions_journey_time", "journey_id", "timestamp"),
         CheckConstraint("lat BETWEEN -90 AND 90 AND lon BETWEEN -180 AND 180"),
@@ -118,10 +120,18 @@ class HistoricalDelay(Base):
     train_number: Mapped[str] = mapped_column(ForeignKey("routes.train_number"))
     station_code: Mapped[str] = mapped_column(ForeignKey("stations.code"))
     day_of_week: Mapped[int] = mapped_column(Integer)
+    hour_of_day: Mapped[int] = mapped_column(Integer, server_default="-1")
     avg_delay_minutes: Mapped[float] = mapped_column(Float)
     sample_count: Mapped[int] = mapped_column(Integer)
     __table_args__ = (
-        UniqueConstraint("train_number", "station_code", "day_of_week"),
+        UniqueConstraint(
+            "train_number",
+            "station_code",
+            "day_of_week",
+            "hour_of_day",
+            name="uq_historical_delay_hour",
+        ),
+        CheckConstraint("hour_of_day BETWEEN -1 AND 23", name="ck_historical_delay_hour"),
         CheckConstraint("day_of_week BETWEEN 0 AND 6"),
         CheckConstraint("avg_delay_minutes >= 0 AND sample_count > 0"),
     )
