@@ -1,15 +1,16 @@
-# API contract — Phase 3
+# API contract — Phase 4
 
 Local base URL: `http://localhost:8000`. OpenAPI is at `/openapi.json` and the
 interactive Swagger UI is at `/docs`. These endpoints are for the local
-synthetic demo. Authentication/rate limiting remain for later phases. Database/cache ports remain private to the Compose network.
+synthetic demo. Authentication remains for later phases; ingestion now has shared rate limits.
+Database/cache ports remain private to the Compose network.
 
 | Method | Path | Purpose | Responses |
 | --- | --- | --- | --- |
 | GET | `/health` | Process liveness | 200 |
 | GET | `/ready` | PostGIS query, seeded route check and Redis ping | 200 / 503 |
-| POST | `/ingest/position` | Store validated synthetic telemetry | 201 / 200 / 404 / 409 / 422 / 503 |
-| POST | `/ingest/event` | Store a synthetic delay event | 201 / 200 / 404 / 409 / 422 / 503 |
+| POST | `/ingest/position` | Store validated synthetic telemetry | 201 / 200 / 404 / 409 / 413 / 422 / 429 / 503 |
+| POST | `/ingest/event` | Store a synthetic delay event | 201 / 200 / 404 / 409 / 413 / 422 / 429 / 503 |
 | GET | `/trains` | Six seeded trains and latest journey status | 200 / 422 / 503 |
 | GET | `/trains/{train_number}/eta` | Upcoming stations, baseline and features | 200 / 404 / 422 / 503 |
 | GET | `/trains/{train_number}/history` | Paginated observed journey positions | 200 / 404 / 422 / 503 |
@@ -121,8 +122,19 @@ Retry of identical normalized content, HTTP 200:
   `{"detail":"Telemetry store unavailable"}`. Retry using the same UUID/body.
 
 Requests serialize per train to make ordering checks safe against concurrent
-writes. Read APIs calculate the baseline from committed observations. Redis publishing
-remains for Phase 4.
+writes. Read APIs calculate the baseline from committed observations. After a
+successful SQL commit, position ingestion atomically invalidates its train's cache,
+advances the cache revision and publishes the normalized input JSON to
+`<REDIS_KEY_PREFIX>:trains:<train_number>` (default prefix `sih-eta:v1`). It then
+fills the cache from the current eligible database observation. Events publish
+on the same train channel. Invalid/conflicting requests never publish.
+
+An identical UUID retry also republishes. If Redis fails after SQL commit, the
+API returns 503 even though the observation may already be stored. Retrying the
+same UUID/body repairs notification/cache delivery without duplicating telemetry.
+PostgreSQL and Redis are not one transaction; there is no durable outbox in this
+phase. A process crash between commit and notification can lose a pub/sub message;
+WebSocket reconciliation and cache expiry recover the current stored state.
 
 ## Read semantics and examples
 
@@ -179,7 +191,7 @@ For every upcoming station:
 scheduled_arrival = journey_started_at
                     + (station.arrival_seconds - origin.departure_seconds)
 baseline_eta      = scheduled_arrival + current_delay_minutes
-eta               = baseline_eta                     # Phase 3
+eta               = baseline_eta                     # Phases 3–4
 prediction_method = "current_delay_carryover"
 model_version     = null
 ```
@@ -242,8 +254,23 @@ The response includes all six train summaries and mutually exclusive counts
 for active/stale/completed/no-data. Delay metrics use **active trains only**:
 `delayed_active_trains` counts delay greater than zero, and mean/max include
 on-time active trains. With no active trains, both mean and maximum are null.
-This avoids interpreting missing/stale data as an on-time train. Redis caching
-is not part of Phase 3.
+This avoids interpreting missing/stale data as an on-time train. Phase 4 loads
+six latest train states from Redis, recomputing status and delay aggregates at
+request time. A warm read makes no PostgreSQL queries. Cache misses use indexed
+queries scoped to the missing train, not a full telemetry-table scan. The seeded
+fixture supplies the six train numbers; metadata is populated from the database
+on a cold fill. Redis is required for this endpoint; failure returns 503 rather
+than silently switching every dashboard request to database scans.
+
+Each train state is cached for at most 60 seconds, or until a future-dated
+observation becomes eligible, whichever is earlier. An ingest invalidates then
+refreshes its train after commit. A Redis revision check prevents a concurrent
+older fill from overwriting committed state; retries read the current latest
+observation rather than blindly caching the retried payload. Concurrent fills
+within one revision also retain the newer as-of time. Stale status is recalculated
+from the sample timestamp, not frozen for the cache TTL. Missing/corrupt/evicted
+entries rebuild on demand. A commit whose notification is lost can leave an old
+cache for up to 60 seconds. Separate deployments must use distinct Redis prefixes.
 
 ### WebSocket ETA updates
 
@@ -263,14 +290,25 @@ shape as GET, including `schema_version: "1.0"`. The initial snapshot is sent
 immediately, even for `no_data`. Reconnecting gets the current snapshot, not a
 replay log. Use history for past positions.
 
-Phase 3 polls the database once per second per connection using short-lived
-sessions off the event loop. A changed position, feature, journey or status
-emits a new snapshot; `generated_at` alone does not cause duplicate updates.
-A train becoming stale also emits an update. Intermediate observations between
-polls can be coalesced. This is not a guaranteed sub-second stream; Redis
-pub/sub, caching and rate limiting remain Phase 4. Client text/binary messages
-are ignored and do not accelerate polling. Disconnects release the receiver
-and no database connection is held while waiting.
+Phase 4 subscribes to the train's Redis channel and waits for the subscription
+acknowledgement **before** fetching the initial snapshot. Committed notifications
+trigger a fresh baseline calculation off the event loop using a short-lived SQL
+session. This works across API processes; no in-process subscription registry
+is required. Live acceptance tests require delivery within one second measured
+from starting POST to receiving its ETA on an already-open socket.
+
+A changed position, feature, journey or status emits a snapshot; `generated_at`
+alone does not cause duplicate updates. Identical ingest retries republish but
+do not repeat an unchanged ETA. Bursts may coalesce into the latest state using
+a single-slot queue. Client text/binary messages are ignored and cannot trigger
+extra queries. Disconnects cancel receivers and release Redis subscriptions.
+
+Pub/sub does not retain messages. A 15-second reconciliation read recovers missed
+notifications; a timer also wakes at the 30-second stale boundary. These recovery
+reads are separate from the normal notification-driven path and are not the
+sub-second delivery mechanism. Redis outages close the socket with an error;
+clients reconnect to obtain current state and use history for past observations.
+There is no production latency SLA under outage or unbounded load.
 
 Unknown train after connection:
 
@@ -285,10 +323,61 @@ Storage failure:
 {"type":"error","code":503,"detail":"Telemetry store unavailable"}
 ```
 
+Redis failure uses the same close code with:
+
+```json
+{"type":"error","code":503,"detail":"Realtime store unavailable"}
+```
+
 The server then closes with 1011. HTTP read storage failures use the same
 sanitized detail with status 503. A valid unseeded train number returns HTTP 404;
 a malformed number returns 422. WebSocket routes are documented here because
 OpenAPI does not describe WebSocket transport.
+
+## Ingestion limits and strict JSON
+
+Both ingestion endpoints and all other requests under `/ingest/` share one
+Redis-backed fixed-window budget per socket peer: 120 requests per 60 seconds,
+starting with that peer's first request. Configure a positive
+`INGEST_RATE_LIMIT_PER_MINUTE` to change the budget. Invalid requests and UUID
+retries count; GET/WS endpoints do not consume it. Budgets are atomic and shared
+across API processes, using expiring keys. IPs are hashed in Redis keys. The
+server ignores caller-supplied forwarding headers (`--no-proxy-headers` in
+Compose); authentication and a production trusted-proxy policy remain separate.
+At a window boundary two budgets can be consumed in quick succession, as with
+any fixed-window limiter.
+
+Rate rejection (HTTP 429, with `Retry-After: <remaining seconds>`):
+
+```json
+{"detail":"Ingestion rate limit exceeded"}
+```
+
+Bodies are bounded to 16,384 bytes before JSON parsing, including chunked bodies.
+HTTP 413:
+
+```json
+{"detail":"Ingestion body exceeds 16384 bytes"}
+```
+
+Malformed JSON, non-finite numbers (`NaN`, `Infinity`, overflow such as `1e9999`),
+or excessive JSON nesting return HTTP 422:
+
+```json
+{"detail":"Body must be valid JSON with finite numbers"}
+```
+
+Normal Pydantic field/domain validation follows after these guards. If Redis is
+unavailable during rate checking, the request fails before writing telemetry
+(HTTP 503):
+
+```json
+{"detail":"Realtime store unavailable"}
+```
+
+The same error can occur during post-commit publication; always retain the UUID
+and retry the same body. The guard applies the budget before parsing, so malformed
+and oversized requests also count. These local demo controls are not authentication.
 
 ## Feature definitions
 

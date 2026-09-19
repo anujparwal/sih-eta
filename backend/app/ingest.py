@@ -1,4 +1,4 @@
-"""Validated, idempotent ingestion; Redis publishing belongs to Phase 4."""
+"""Validated, idempotent ingestion; publish committed updates through Redis."""
 
 from typing import Annotated
 
@@ -10,9 +10,18 @@ from sqlalchemy.orm import Session
 
 from app.database import get_session
 from app.models import Event, LivePosition, Route, RouteStop, Station
+from app.realtime import publish_committed
 from app.schemas import EventIn, IngestResult, PositionIn
 
-router = APIRouter(prefix="/ingest", tags=["synthetic telemetry"])
+router = APIRouter(
+    prefix="/ingest",
+    tags=["synthetic telemetry"],
+    responses={
+        413: {"description": "Request body too large"},
+        429: {"description": "Shared ingestion rate limit exceeded"},
+        503: {"description": "Storage or realtime service unavailable; retry the same UUID"},
+    },
+)
 Database = Annotated[Session, Depends(get_session)]
 
 
@@ -80,6 +89,8 @@ def validate_location(session: Session, route: Route, payload: PositionIn) -> No
 def ingest_position(payload: PositionIn, response: Response, session: Database) -> IngestResult:
     route = lock_route(session, payload.train_number)
     if duplicate(session, LivePosition, payload):
+        session.commit()
+        publish_committed(session, payload)
         response.status_code = 200
         return IngestResult(id=payload.id, status="duplicate")
     validate_location(session, route, payload)
@@ -109,6 +120,7 @@ def ingest_position(payload: PositionIn, response: Response, session: Database) 
             geom=WKTElement(f"POINT({payload.lon} {payload.lat})", srid=4326),
         ),
     )
+    publish_committed(session, payload)
     return IngestResult(id=payload.id, status="created")
 
 
@@ -116,7 +128,10 @@ def ingest_position(payload: PositionIn, response: Response, session: Database) 
 def ingest_event(payload: EventIn, response: Response, session: Database) -> IngestResult:
     lock_route(session, payload.train_number)
     if duplicate(session, Event, payload):
+        session.commit()
+        publish_committed(session, payload)
         response.status_code = 200
         return IngestResult(id=payload.id, status="duplicate")
     save(session, Event(**payload.model_dump()))
+    publish_committed(session, payload)
     return IngestResult(id=payload.id, status="created")

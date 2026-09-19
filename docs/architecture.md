@@ -1,4 +1,4 @@
-# Architecture — Phase 3
+# Architecture — Phase 4
 
 The default stack contains FastAPI, PostgreSQL 15 with PostGIS 3.3, Redis 7.4
 and the static Next.js/Tailwind shell. The optional `simulation` Compose profile
@@ -16,8 +16,12 @@ flowchart LR
   API --> DB
   DB --> Reads[Baseline ETA and as-of features]
   Reads --> REST[Train / history / station / fleet APIs]
-  Reads --> WS[Polling WebSocket snapshots]
-  API -->|readiness ping only| Redis[(Redis)]
+  Reads --> WS[WebSocket ETA snapshots]
+  API -->|post-commit train notification and cache update| Redis[(Redis)]
+  Redis -->|pub/sub| WS
+  Redis --> Fleet[Cached fleet aggregation]
+  Redis --> Guard[Shared ingest rate budget]
+  Guard --> API
   Browser --> Frontend[Next.js placeholder]
 ```
 
@@ -92,17 +96,40 @@ at more than 30 seconds without an observation. Station arrivals exclude them
 by default; fleet means count only active trains. Completed and no-data cases
 are distinct. Future-dated observations never displace a present observation.
 
-WebSocket connections obtain a fresh snapshot in a worker thread using a
-short-lived SQLAlchemy session once per second. A changed position, feature or
-status is sent; response-time changes alone are suppressed. Each connection
-receives an initial snapshot and releases its receiver on disconnect. There is
-no Redis pub/sub or retained event queue in Phase 3. Slow/lost connections can
-reconnect to the current snapshot and use history for past positions.
+`app.realtime` owns Redis train channels, versioned per-train caches and the
+shared rate budget. Ingestion commits SQL before invalidating/publishing; UUID
+retries repeat delivery without another SQL row. Fleet reads assemble six cached
+states, recalculating freshness at request time. Cold entries query only their
+train using train/time indexes. Entries expire within 60 seconds and before the
+next future-dated sample becomes eligible. A compare-and-set revision prevents
+a fill racing a commit from restoring stale state; as-of ordering prevents an
+older concurrent fill within one revision from replacing a newer fill.
+
+WebSockets acknowledge subscription before their initial SQL snapshot, then react
+to Redis messages across API workers. Calculations run in worker threads with
+short-lived SQLAlchemy sessions. A single-slot queue coalesces bursts; unchanged
+snapshots are suppressed. Connections also reconcile every 15 seconds and wake
+at the stale threshold. Redis listener failures produce a sanitized error and
+close 1011; receivers/subscriptions are cleaned up on disconnect.
+
+`app.ingest_guard` applies a Redis fixed-window budget before parsing a bounded
+16 KiB JSON body. Limits are shared by both ingestion endpoints and all API
+processes using the namespace. Strict parsing prevents non-finite numeric input
+from leaking into validation-error serialization. The supplied server disables
+proxy-header handling so spoofed forwarding headers cannot evade the peer limit.
+
+There is no distributed SQL/Redis transaction or durable outbox. A failure after
+commit can return 503 for an already-stored observation: retrying the same UUID
+republishes and repairs cache state. A process crash before publication can lose
+a notification; the reconciliation timer and cache expiry recover current SQL
+state. Redis failure before rate checking denies new ingestion, while direct
+DB read APIs remain available. Fleet/WS endpoints require Redis. This is an
+explicit local-demo delivery policy, not a production availability guarantee.
 
 ## Scope boundary
 
-Redis remains a healthy infrastructure dependency for Phase 4, which adds
-publishing, shared caching, rate limiting and sub-second delivery. XGBoost/SHAP
-and measured model evaluation remain Phase 5. Passenger/station/control views
-remain Phase 6; the frontend is still a placeholder. Public deployment,
-authentication and TLS remain outside this local synthetic demo.
+XGBoost/SHAP and measured model evaluation remain Phase 5. Passenger/station/
+control views remain Phase 6; the frontend is still a placeholder. Public
+deployment, authentication, TLS, trusted reverse-proxy configuration and durable
+message replay remain outside this local synthetic demo. Baseline response
+shapes and source labels remain unchanged from Phase 3.

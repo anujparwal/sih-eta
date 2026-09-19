@@ -7,12 +7,15 @@ import psycopg
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
+from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.ingest import router as ingest_router
+from app.ingest_guard import IngestGuard
 from app.read_api import router as read_router
 
-app = FastAPI(title="Dynamic Train ETA", version="0.3.0")
+app = FastAPI(title="Dynamic Train ETA", version="0.4.0")
+app.add_middleware(IngestGuard)
 app.include_router(ingest_router)
 app.include_router(read_router)
 
@@ -20,6 +23,11 @@ app.include_router(read_router)
 @app.exception_handler(SQLAlchemyError)
 async def database_unavailable(_request: Request, _error: SQLAlchemyError) -> JSONResponse:
     return JSONResponse(status_code=503, content={"detail": "Telemetry store unavailable"})
+
+
+@app.exception_handler(RedisError)
+async def realtime_unavailable(_request: Request, _error: RedisError) -> JSONResponse:
+    return JSONResponse(status_code=503, content={"detail": "Realtime store unavailable"})
 
 
 async def check_postgres() -> None:

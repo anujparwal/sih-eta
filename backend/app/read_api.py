@@ -1,4 +1,4 @@
-"""Read endpoints and a polling WebSocket transport for the Phase 3 contract."""
+"""Read endpoints and Redis-backed WebSocket transport for the stable ETA contract."""
 
 import asyncio
 from datetime import UTC, datetime
@@ -7,11 +7,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, WebSocket, WebSocketDisconnect
 from pydantic import AwareDatetime
+from redis.exceptions import RedisError
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from app import realtime
 from app.database import get_engine, get_session
 from app.eta import build_eta, get_route, latest_position, route_stops, train_status
 from app.features import latest_positions
@@ -26,6 +28,8 @@ from app.read_schemas import (
     TrainList,
     TrainSummary,
 )
+
+WS_RECONCILE_SECONDS = 15.0
 
 router = APIRouter(tags=["synthetic baseline"])
 Database = Annotated[Session, Depends(get_session)]
@@ -139,7 +143,7 @@ def arrivals(
 
 @router.get("/control/fleet-status", response_model=FleetStatus)
 def fleet_status(session: Database, now: Now) -> FleetStatus:
-    rows = summaries(session, now)
+    rows = [realtime.cached_train(session, number, now) for number in realtime.train_numbers()]
     delays = [r.latest_position.delay_minutes for r in rows if r.status == "active"]
     return FleetStatus(
         generated_at=now,
@@ -165,6 +169,7 @@ def socket_snapshot(train_number: str) -> TrainETA:
 async def websocket_eta(websocket: WebSocket, train_number: TrainNumber) -> None:
     await websocket.accept()
     previous = None
+    notification = None
 
     async def disconnected():
         while True:
@@ -174,20 +179,36 @@ async def websocket_eta(websocket: WebSocket, train_number: TrainNumber) -> None
 
     receiver = asyncio.create_task(disconnected())
     try:
-        while True:
-            snapshot = await run_in_threadpool(socket_snapshot, train_number)
-            signature = snapshot.model_dump_json(exclude={"generated_at"})
-            if signature != previous:
-                await websocket.send_json(
-                    {"type": "eta_update", "data": snapshot.model_dump(mode="json")}
+        async with realtime.subscribe(train_number) as updates:
+            while True:
+                snapshot = await run_in_threadpool(socket_snapshot, train_number)
+                signature = snapshot.model_dump_json(exclude={"generated_at"})
+                if signature != previous:
+                    await websocket.send_json(
+                        {"type": "eta_update", "data": snapshot.model_dump(mode="json")}
+                    )
+                    previous = signature
+                # Notifications drive delivery. Reconcile every 15 seconds to recover
+                # missed pub/sub messages; also wake exactly when a train becomes stale.
+                timeout = WS_RECONCILE_SECONDS
+                if snapshot.status == "active" and snapshot.as_of is not None:
+                    timeout = max(
+                        0.001, min(timeout, 30.001 - (utc_now() - snapshot.as_of).total_seconds())
+                    )
+                notification = asyncio.create_task(updates.get())
+                done, _ = await asyncio.wait(
+                    {receiver, notification}, timeout=timeout, return_when=asyncio.FIRST_COMPLETED
                 )
-                previous = signature
-            # Text/binary input is ignored. Receiving concurrently detects idle disconnects
-            # without allowing client messages to accelerate database polling.
-            done, _ = await asyncio.wait({receiver}, timeout=1)
-            if done:
-                await receiver
-                break
+                if receiver in done:
+                    await receiver
+                    break
+                if notification in done:
+                    result = notification.result()
+                    if isinstance(result, Exception):
+                        raise result
+                else:
+                    notification.cancel()
+                    await asyncio.gather(notification, return_exceptions=True)
     except WebSocketDisconnect:
         pass
     except HTTPException as error:
@@ -195,6 +216,11 @@ async def websocket_eta(websocket: WebSocket, train_number: TrainNumber) -> None
             {"type": "error", "code": error.status_code, "detail": error.detail}
         )
         await websocket.close(code=1008)
+    except (RedisError, TimeoutError):
+        await websocket.send_json(
+            {"type": "error", "code": 503, "detail": "Realtime store unavailable"}
+        )
+        await websocket.close(code=1011)
     except SQLAlchemyError:
         await websocket.send_json(
             {"type": "error", "code": 503, "detail": "Telemetry store unavailable"}
@@ -202,4 +228,8 @@ async def websocket_eta(websocket: WebSocket, train_number: TrainNumber) -> None
         await websocket.close(code=1011)
     finally:
         receiver.cancel()
-        await asyncio.gather(receiver, return_exceptions=True)
+        tasks = [receiver]
+        if notification is not None:
+            notification.cancel()
+            tasks.append(notification)
+        await asyncio.gather(*tasks, return_exceptions=True)
