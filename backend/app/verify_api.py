@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import json
+import time
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -61,9 +62,12 @@ async def verify(api_url: str) -> None:
                 delay_minutes=held["delay_minutes"] + elapsed / 60,
                 current_speed_kmh=0,
             )
+            started = time.perf_counter()
             response = await client.post("/ingest/position", json=held)
             response.raise_for_status()
             update = json.loads(await asyncio.wait_for(socket.recv(), timeout=5))
+            delivery_ms = (time.perf_counter() - started) * 1000
+            assert delivery_ms < 1000, f"Ingest-to-WebSocket delivery took {delivery_ms:.1f} ms"
             assert update["data"]["position_id"] == held["id"]
             assert abs(update["data"]["current_delay_minutes"] - held["delay_minutes"]) < 1e-6
         response = await client.get("/control/fleet-status")
@@ -77,6 +81,7 @@ async def verify(api_url: str) -> None:
                     "station_boards": "passed",
                     "websocket_connections": 13,
                     "http_to_websocket_update": "passed",
+                    "delivery_ms": round(delivery_ms, 2),
                 }
             )
         )

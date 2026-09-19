@@ -1,15 +1,17 @@
 # Backend
 
 Follow the root guide. Use Python 3.12, FastAPI, SQLAlchemy 2, Alembic and PostGIS.
-Phase 3 exposes health/ingestion, train ETA/history, station arrivals, fleet status
-and polling WebSocket snapshots. Redis pub/sub remains Phase 4. Preserve the
+Phase 4 exposes health/ingestion, train ETA/history, station arrivals, Redis-cached
+fleet status and Redis-driven WebSocket snapshots. Preserve the
 versioned response shapes and independent baseline fields when adding the model.
 Never substitute invented zeros for unknown history or observed station timing.
 
 Run `pytest`, `ruff check .` and `ruff format --check .` before finishing.
 For full coverage, set TEST_DATABASE_URL to a disposable database ending in
 `_test`; integration tests include migration downgrade/upgrade and model drift
-checks. Without that variable, database tests skip. See the root README for exact
+checks. Redis tests also require TEST_REDIS_URL using database 15. Tests isolate
+keys with a per-test UUID prefix and never flush shared Redis data. Missing service
+URLs explicitly skip service tests. See the root README for exact
 container commands. Unit and simulator tests do not need PostgreSQL.
 
 Use explicit Alembic revisions; never create application tables during an HTTP
@@ -27,3 +29,12 @@ order. Never expose credentials or raw database exceptions.
 Edit requirements.in / requirements-dev.in and regenerate both hashed lockfiles
 with `uv pip compile --python-version 3.12 --generate-hashes`. Verify the same
 runtime pins occur in both. The Docker build context is now the repository root.
+
+
+Publish only after SQL commit; an identical UUID retry must repair delivery after
+a Redis failure. Do not cache a retried payload blindly: select the latest eligible
+row. Preserve cache generation/as-of guards and future-observation boundaries.
+Warm fleet reads must not query SQL. Ingest limits must be atomic across workers,
+include invalid requests and bound raw bodies before parsing. Do not trust caller
+forwarding headers in the local server. Test actual Redis and two API processes;
+normal ingest-to-open-WebSocket delivery must remain under one second.

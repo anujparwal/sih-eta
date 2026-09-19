@@ -55,7 +55,7 @@ def db(db_engine):
 
 
 @pytest.fixture
-def request_api():
+def request_api(redis_client):
     def request(method, path, payload):
         async def send():
             async with httpx.AsyncClient(
@@ -66,3 +66,33 @@ def request_api():
         return asyncio.run(send())
 
     return request
+
+
+@pytest.fixture
+def redis_client(monkeypatch):
+    from uuid import uuid4
+
+    from redis import Redis
+
+    from app import realtime
+
+    url = os.getenv("TEST_REDIS_URL")
+    if not url:
+        pytest.skip("Set TEST_REDIS_URL to Redis database 15 for realtime integration tests")
+    from urllib.parse import urlparse
+
+    if urlparse(url).path != "/15":
+        raise ValueError("TEST_REDIS_URL must use dedicated Redis database 15")
+    client = Redis.from_url(url, decode_responses=True, socket_connect_timeout=1, socket_timeout=1)
+    client.ping()
+    prefix = f"sih-eta-test:{uuid4()}"
+    monkeypatch.setattr(realtime, "KEY_PREFIX", prefix)
+    monkeypatch.setattr(realtime, "get_redis", lambda: client)
+    monkeypatch.setattr(realtime, "redis_url", lambda: url)
+    try:
+        yield client
+    finally:
+        keys = list(client.scan_iter(match=f"{prefix}:*"))
+        if keys:
+            client.delete(*keys)
+        client.close()

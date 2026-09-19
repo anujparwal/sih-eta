@@ -1,6 +1,6 @@
 # Dynamic Train ETA — SIH 2026
 
-Phase 3 baseline ETA API for coaching trains on Indian routes:
+Phase 4 realtime baseline ETA API for coaching trains on Indian routes:
 FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind shell, and a Python
 telemetry simulator. Six **real historical routes** and 63 stations are seeded
 from attributed public data. Train positions and incidents are **synthetic**.
@@ -89,12 +89,37 @@ curl --fail http://localhost:8000/control/fleet-status
 ```
 
 Connect to `ws://localhost:8000/ws/trains/12301` for an initial ETA snapshot and
-changed snapshots polled once per second. Every prediction is explicitly a
+changed snapshots driven by Redis pub/sub. The live smoke requires delivery
+within one second; a 15-second reconciliation check recovers missed notifications. Every prediction is explicitly a
 **current-delay carryover baseline**: shifted timetable arrival + current delay.
 The API keeps a separate baseline field for later model comparison. Missing
 history stays null; stale telemetry is labeled and excluded from station boards
 by default. See the [API contract](docs/api_contract.md) for complete JSON
 examples, feature formulas, pagination, error codes and legacy timing limits.
+
+## Realtime behavior
+
+Committed position and event updates publish to train-specific Redis channels.
+A warmed fleet-status request aggregates six Redis-cached train states without
+querying PostgreSQL. Ingestion updates the affected cache; missing/expired state
+is rebuilt with indexed per-train queries. Status still ages from active to stale
+without new telemetry. History and baseline ETA contracts are unchanged.
+
+All `/ingest/*` requests share a Redis budget of **120 requests per 60 seconds
+per socket peer**, configurable with INGEST_RATE_LIMIT_PER_MINUTE. The normal
+six-train simulator fits this budget. Rejections return 429 with Retry-After;
+bodies above 16 KiB return 413, and invalid/non-finite JSON returns 422. Forwarded
+IP headers are not trusted; the supplied server disables proxy headers. This is
+a local demo limit, not authentication or a production proxy policy.
+
+Redis failure returns a sanitized 503. A failure after SQL commit can leave the
+observation stored, so **retry the same UUID and body**; the retry republishes
+without another row. Pub/sub is not a durable queue: reconnecting gets the latest
+snapshot, periodic reconciliation recovers missed notifications, and history
+remains in PostgreSQL. Warm caches expire within 60 seconds even if a process
+fails between commit and invalidation. Use a distinct REDIS_KEY_PREFIX for each
+deployment/database sharing the same Redis database. The complete semantics are
+in the [API contract](docs/api_contract.md).
 
 ## Tests and checks
 
@@ -103,7 +128,7 @@ throwaway test database** once (with the default local credentials):
 
 ```sh
 docker compose exec -T postgres createdb -U sih_eta sih_eta_test
-docker compose run --rm -T -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test backend pytest
+docker compose run --rm -T -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest
 docker compose run --rm -T backend ruff check .
 docker compose run --rm -T backend ruff format --check .
 ```
@@ -111,8 +136,11 @@ docker compose run --rm -T backend ruff format --check .
 If `createdb` reports the database already exists, reuse it. Never point tests
 at application data: the migration round-trip test recreates application
 tables in the test database. The name must end in `_test`.
-`docker compose run --rm backend pytest` without TEST_DATABASE_URL runs unit
-and simulator tests, **skipping database integration tests**.
+`docker compose run --rm backend pytest` without TEST_DATABASE_URL and
+TEST_REDIS_URL runs unit and simulator tests, **skipping service integration tests**.
+Redis integration tests require database 15 and use a unique key prefix per test;
+they delete only their own keys. The suite starts two temporary API processes
+to verify cross-process notification delivery and a shared ingestion budget.
 
 Frontend checks require Node.js 22 and npm:
 
@@ -135,7 +163,7 @@ python3.12 -m venv .venv
 To run the backend outside containers, export POSTGRES_HOST, POSTGRES_PORT,
 POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD and REDIS_URL for reachable
 services; then run `.venv/bin/alembic upgrade head`, `.venv/bin/python -m app.seed`
-and `.venv/bin/uvicorn app.main:app --reload` from `backend/`. The root `.env`
+and `.venv/bin/uvicorn app.main:app --reload --no-proxy-headers` from `backend/`. The root `.env`
 is read by Compose, not automatically by the host Python process. The default
 Compose database/cache ports are private. The host simulator needs no packages:
 run `python3 simulator/simulate.py --duration 120` from the repository root.
@@ -188,5 +216,6 @@ uv pip compile requirements-dev.in --python-version 3.12 --generate-hashes -o re
 ```
 
 Keep runtime pins identical in both locks; commit frontend package-lock.json.
-See [AGENTS.md](AGENTS.md), [architecture](docs/architecture.md),
+See [phase acceptance](docs/phase_acceptance.md), [AGENTS.md](AGENTS.md),
+[architecture](docs/architecture.md),
 [API contract](docs/api_contract.md) and [simulator notes](simulator/README.md).

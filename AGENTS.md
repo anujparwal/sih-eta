@@ -3,9 +3,9 @@
 ## Scope and decisions
 
 This is the SIH 2026 Dynamic ETA Forecast for Coaching Trains monorepo.
-Phase 3 adds typed REST/WebSocket contracts, the current-delay carryover baseline
-and shared as-of features on the Phase 2 network/simulator. Model evaluation,
-Redis publishing and the three operational views are not implemented yet.
+Phase 4 adds Redis pub/sub, per-train fleet caches and shared ingestion guards
+to the typed Phase 3 baseline APIs. Model evaluation and the three operational
+views are not implemented yet.
 
 The upgraded `sih_plan.md` takes precedence over the older Astra plan where
 they differ: PostgreSQL **with PostGIS**, exactly **six simulated coaching
@@ -47,7 +47,7 @@ From the repository root, with Docker Engine and Compose v2:
 cp .env.example .env # only if .env does not already exist
 docker compose up --build -d --wait
 docker compose exec -T postgres createdb -U sih_eta sih_eta_test # once, for default local credentials
-docker compose run --rm -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test backend pytest
+docker compose run --rm -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest
 docker compose run --rm backend ruff check .
 docker compose run --rm backend ruff format --check .
 cd frontend
@@ -61,7 +61,10 @@ npm run build
 Confirm all four services are healthy and `GET /ready` returns HTTP 200.
 Integration tests require a dedicated database whose name ends in `_test`; the
 migration round-trip test recreates its application tables. Never use the running
-application database for tests. Without TEST_DATABASE_URL the database tests skip.
+application database for tests. Redis tests require TEST_REDIS_URL on database 15
+and isolate/clean only their own UUID-prefixed keys. Missing service test URLs
+explicitly skip the corresponding integration tests. The suite also launches two
+temporary API processes to verify cross-process delivery and shared limits.
 Simulator tests are included in the backend suite. Run the two-minute smoke check
 in README.md before declaring telemetry work complete. The same smoke also validates the read APIs and real WebSocket delivery.
 There are no ML or browser flow tests yet. Use Ruff with `--config backend/pyproject.toml` for root Python scripts.
