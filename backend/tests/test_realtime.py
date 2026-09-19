@@ -277,3 +277,20 @@ def test_real_pubsub_survives_idle_health_checks_and_coalesces_bursts(redis_clie
         assert redis_client.pubsub_numsub(realtime.channel("12301"))[0][1] == 0
 
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"delay_minutes": 1e308},
+        {"timestamp": "9999-12-31T23:59:59-01:00"},
+        {"timestamp": "0001-01-01T00:00:00+01:00"},
+        {"journey_started_at": "0001-01-01T00:00:00+01:00"},
+    ],
+)
+def test_extreme_timeline_input_is_rejected_instead_of_breaking_eta(
+    db, dataset, request_api, change
+):
+    response = request_api("POST", "/ingest/position", payload(dataset) | change)
+    assert response.status_code == 422
+    assert db.scalar(select(func.count()).select_from(LivePosition)) == 0

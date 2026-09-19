@@ -57,6 +57,9 @@ throughout a train/journey; a conflicting start returns 409. Legacy clients may
 omit it. Existing records remain null after migration. This is the simulation
 anchor, not the archived timetable's wall-clock departure on today's date.
 
+UTC normalization and timetable arithmetic must fit the supported datetime
+range; extreme timestamps or delays that would overflow return 422.
+
 Distance and delay are nonnegative; speed is 0–200 km/h; coordinates are finite
 and within valid latitude/longitude bounds. `source` defaults to `simulator`
 and accepts no other value. Unknown fields are rejected.

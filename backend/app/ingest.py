@@ -1,5 +1,6 @@
 """Validated, idempotent ingestion; publish committed updates through Redis."""
 
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -59,6 +60,19 @@ def validate_location(session: Session, route: Route, payload: PositionIn) -> No
             select(RouteStop).where(RouteStop.route_id == route.id).order_by(RouteStop.sequence)
         )
     )
+    # Both legacy-anchor inference and future arrivals must fit datetime arithmetic.
+    # This is a representability check, not an invented operational delay threshold.
+    try:
+        horizon = timedelta(
+            seconds=stops[-1].arrival_seconds - stops[0].departure_seconds,
+            minutes=payload.delay_minutes,
+        )
+        payload.timestamp - horizon
+        payload.timestamp + horizon
+    except OverflowError:
+        raise HTTPException(
+            422, "Timestamp and delay exceed the supported timetable range"
+        ) from None
     index = next(
         (i for i, stop in enumerate(stops) if stop.station_code == payload.last_station), None
     )

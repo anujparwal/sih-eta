@@ -7,6 +7,13 @@ from uuid import UUID
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
+def normalized_utc(value: datetime) -> datetime:
+    try:
+        return value.astimezone(UTC)
+    except OverflowError:
+        raise ValueError("Timestamp is outside the supported UTC range") from None
+
+
 class Telemetry(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     id: UUID
@@ -18,7 +25,7 @@ class Telemetry(BaseModel):
     @field_validator("timestamp")
     @classmethod
     def utc_timestamp(cls, value: datetime) -> datetime:
-        return value.astimezone(UTC)
+        return normalized_utc(value)
 
 
 class PositionIn(Telemetry):
@@ -34,7 +41,7 @@ class PositionIn(Telemetry):
     @model_validator(mode="after")
     def valid_journey_start(self):
         if self.journey_started_at is not None:
-            self.journey_started_at = self.journey_started_at.astimezone(UTC)
+            self.journey_started_at = normalized_utc(self.journey_started_at)
             if self.journey_started_at > self.timestamp:
                 raise ValueError("journey_started_at must not follow timestamp")
         return self
