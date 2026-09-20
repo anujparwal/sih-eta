@@ -51,6 +51,24 @@ class TrainList(BaseModel):
     trains: list[TrainSummary]
 
 
+class ShapContribution(BaseModel):
+    feature: str
+    value: float | None
+    contribution_minutes: float
+
+
+class ModelExplanation(BaseModel):
+    method: Literal["tree_shap"] = "tree_shap"
+    target: Literal["next_station_delay_residual_minutes"] = "next_station_delay_residual_minutes"
+    base_value_minutes: float
+    contributions: list[ShapContribution]
+    raw_residual_minutes: float
+    current_delay_minutes: float
+    clipping_adjustment_minutes: float
+    predicted_delay_minutes: float
+    interpretation: str = "Model contributions, not causal effects; synthetic training data only."
+
+
 class StationETA(BaseModel):
     station_code: str
     station_name: str
@@ -61,6 +79,11 @@ class StationETA(BaseModel):
     eta: datetime
     prediction_method: str = "current_delay_carryover"
     model_version: str | None = None
+    eta_baseline_minutes: float | None = None
+    eta_ml_minutes: float | None = None
+    ml_eta: datetime | None = None
+    predicted_delay_minutes: float | None = None
+    explanation: ModelExplanation | None = None
 
 
 class TrainETA(BaseModel):
@@ -78,6 +101,16 @@ class TrainETA(BaseModel):
     current_delay_minutes: float | None
     features: Features | None
     stations: list[StationETA]
+    eta_baseline_minutes: float | None = None
+    eta_ml_minutes: float | None = None
+    ml_status: Literal[
+        "ready",
+        "unavailable",
+        "outside_training_domain",
+        "legacy_timing",
+        "no_next_station",
+        "prediction_error",
+    ] = "unavailable"
 
 
 class JourneyHistory(BaseModel):

@@ -31,7 +31,7 @@ from app.read_schemas import (
 
 WS_RECONCILE_SECONDS = 15.0
 
-router = APIRouter(tags=["synthetic baseline"])
+router = APIRouter(tags=["synthetic ETA"])
 Database = Annotated[Session, Depends(get_session)]
 TrainNumber = Annotated[str, Path(pattern=r"^\d{5}$")]
 

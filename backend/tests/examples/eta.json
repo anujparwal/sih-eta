@@ -43,7 +43,15 @@
       "baseline_eta": "2026-09-17T18:45:00Z",
       "eta": "2026-09-17T18:45:00Z",
       "prediction_method": "current_delay_carryover",
-      "model_version": null
+      "model_version": null,
+      "eta_baseline_minutes": 5.0,
+      "eta_ml_minutes": null,
+      "ml_eta": null,
+      "predicted_delay_minutes": null,
+      "explanation": null
     }
-  ]
+  ],
+  "eta_baseline_minutes": 5.0,
+  "eta_ml_minutes": null,
+  "ml_status": "unavailable"
 }

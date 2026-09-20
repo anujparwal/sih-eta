@@ -64,10 +64,13 @@ def test_baseline_hand_calculated_and_board_matches(db, request_api, clock, send
     assert first["station_code"] == "DKAE"
     assert datetime.fromisoformat(first["scheduled_arrival"]) == NOW + timedelta(minutes=10)
     assert datetime.fromisoformat(first["baseline_eta"]) == NOW + timedelta(minutes=15)
-    assert first["eta"] == first["baseline_eta"]
-    assert (
-        first["prediction_method"] == "current_delay_carryover" and first["model_version"] is None
-    )
+    assert first["prediction_method"] == "xgboost_next_station"
+    assert first["model_version"] == "synthetic-next-station-v1"
+    assert first["eta_baseline_minutes"] == 15
+    assert first["eta_ml_minutes"] is not None
+    assert first["eta"] == first["ml_eta"]
+    assert eta["eta_ml_minutes"] == first["eta_ml_minutes"]
+    assert first["explanation"]["method"] == "tree_shap"
     assert len(eta["stations"]) == 10
     board = get(request_api, "/stations/DKAE/arrivals")["arrivals"]
     assert len(board) == 1
@@ -297,3 +300,97 @@ def test_read_database_failure_is_sanitized(request_api):
             assert response.json() == {"detail": "Telemetry store unavailable"}
     finally:
         app.dependency_overrides.pop(get_session, None)
+
+
+def test_ml_fallback_preserves_baseline_and_legacy_contract(
+    db, request_api, clock, send_train, monkeypatch
+):
+    import app.eta as eta_module
+
+    send_train()
+    monkeypatch.setattr(eta_module, "get_predictor", lambda: None)
+    result = get(request_api, "/trains/12301/eta")
+    assert result["ml_status"] == "unavailable"
+    assert result["eta_ml_minutes"] is None
+    assert result["eta_baseline_minutes"] == 15
+    for station in result["stations"]:
+        assert station["eta"] == station["baseline_eta"]
+        assert station["explanation"] is None and station["model_version"] is None
+
+
+def test_ml_only_predicts_next_station_and_matches_station_board(
+    db, request_api, clock, send_train
+):
+    send_train()
+    result = get(request_api, "/trains/12301/eta")
+    assert result["ml_status"] == "ready"
+    assert result["stations"][0]["ml_eta"] is not None
+    for station in result["stations"][1:]:
+        assert station["ml_eta"] is None
+        assert station["eta"] == station["baseline_eta"]
+    board = get(request_api, "/stations/DKAE/arrivals")["arrivals"][0]
+    assert board["eta"] == result["stations"][0]["eta"]
+    assert board["explanation"] == result["stations"][0]["explanation"]
+
+
+def test_legacy_timing_and_out_of_domain_do_not_claim_model_output(
+    db, request_api, clock, send_train
+):
+    send_train(journey_started_at=None, end=NOW - timedelta(seconds=1))
+    assert get(request_api, "/trains/12301/eta")["ml_status"] == "legacy_timing"
+    send_train(elapsed=1000000, nominal=300)
+    result = get(request_api, "/trains/12301/eta")
+    assert result["ml_status"] == "outside_training_domain"
+    assert result["eta_ml_minutes"] is None
+
+
+def test_prediction_failure_is_explicit_and_does_not_break_baseline(
+    db, request_api, clock, send_train, monkeypatch
+):
+    import app.eta as eta_module
+
+    class BrokenPredictor:
+        def explain(self, _features):
+            raise ValueError("Nonfinite model output")
+
+    send_train()
+    monkeypatch.setattr(eta_module, "get_predictor", lambda: BrokenPredictor())
+    result = get(request_api, "/trains/12301/eta")
+    assert result["ml_status"] == "prediction_error"
+    assert result["eta_ml_minutes"] is None
+    assert result["stations"][0]["eta"] == result["stations"][0]["baseline_eta"]
+
+
+def test_ml_arrival_floor_keeps_shap_adjustment_reconcilable(
+    db, request_api, clock, send_train, monkeypatch
+):
+    import app.eta as eta_module
+    from app.read_schemas import ModelExplanation
+
+    class EarlyPredictor:
+        version = "test-clipping"
+
+        def explain(self, features):
+            return ModelExplanation(
+                base_value_minutes=-features.current_delay_minutes,
+                contributions=[],
+                raw_residual_minutes=-features.current_delay_minutes,
+                current_delay_minutes=features.current_delay_minutes,
+                clipping_adjustment_minutes=0,
+                predicted_delay_minutes=0,
+            )
+
+    send_train(elapsed=1800, nominal=300)
+    monkeypatch.setattr(eta_module, "get_predictor", lambda: EarlyPredictor())
+    result = get(request_api, "/trains/12301/eta")
+    assert result["eta_ml_minutes"] == 0
+    first = result["stations"][0]
+    assert datetime.fromisoformat(first["ml_eta"]) == NOW
+    explanation = first["explanation"]
+    assert explanation["clipping_adjustment_minutes"] == 10
+    assert (
+        explanation["current_delay_minutes"]
+        + explanation["raw_residual_minutes"]
+        + explanation["clipping_adjustment_minutes"]
+        == first["predicted_delay_minutes"]
+    )

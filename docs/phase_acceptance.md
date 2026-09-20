@@ -1,10 +1,9 @@
-# Acceptance coverage through Phase 4
+# Acceptance coverage through Phase 5
 
-Phases 1–4 implement the infrastructure, sourced dataset and simulator, baseline
-API/features, and Redis realtime path. All predictions are the current-delay
-carryover baseline. ML training/evaluation belongs to Phase 5; passenger,
-station-board and control-room interfaces belong to Phase 6. The frontend
-identifies Phase 4 and labels those interfaces as planned.
+Phases 1–5 implement infrastructure, sourced routes, the simulator, baseline
+APIs, Redis realtime delivery, and evaluated next-station ML with SHAP.
+Passenger, station-board and control-room interfaces remain for Phase 6.
+The frontend identifies Phase 5 and labels those interfaces as planned.
 
 | Phase | Acceptance requirement | Verification |
 | --- | --- | --- |
@@ -19,12 +18,18 @@ identifies Phase 4 and labels those interfaces as planned.
 | 4 | Shared rate limit and bounded input | Concurrent Redis budget; two workers share limits; spoofed headers, oversized/chunked/malformed/non-finite JSON |
 | 4 | Reconnect and cleanup | Initial/reconnected snapshots, duplicate suppression, missed-message reconciliation, stale timer, Redis error closure and subscription cleanup |
 
+| 5 | Shared features and chronological evaluation without label leakage | Database/offline feature parity, observed station targets, disjoint complete journeys, purged split boundaries |
+| 5 | Meaningful carryover comparison | 66 training / 18 validation / 24 test journeys; MAE 33.941 → 5.759 min, RMSE 45.098 → 8.013 min; all six train groups improve |
+| 5 | Reviewed artifact and exact SHAP | JSON/network checksums, feature/objective validation, SHAP additive identity and published model card |
+| 5 | REST, station boards and WS agree | Same next-station prediction path; independent baseline; downstream, legacy and unavailable/out-of-domain fallbacks |
+| 5 | Reproducible training and history-job stub | Deterministic seeded telemetry generator, hashed data manifest, versioned inputs; idempotent observed-arrival aggregation with dry-run default |
+
 The [CI workflow](../.github/workflows/scaffold.yml) runs the combined backend
 suite with dedicated PostgreSQL and Redis test databases, Ruff, frontend checks,
 four-service health checks, and the two-minute simulation followed by API and
 WebSocket verification. The live run requires at least 20 samples spanning at
 least 110 seconds per train, recorded events and observable delay. The API smoke
-checks all six train baselines, history and station boards, then appends one
+checks all six train baselines, ML/SHAP, history and station boards, then appends one
 synthetic held-position sample to measure delivery to an open WebSocket.
 
 Use the [README commands](../README.md#tests-and-checks) to reproduce the checks.
@@ -35,5 +40,5 @@ subprocesses and recorded journey.
 
 The [API contract](api_contract.md) describes the scope limits: synthetic data
 over historical routes and schematic connectors; nondurable Redis pub/sub;
-reconciliation/cache expiry after a lost notification; and no model accuracy or
+reconciliation/cache expiry after a lost notification; and no real-world railway accuracy or
 production availability claim. Passing checks establishes the tested behaviors.
