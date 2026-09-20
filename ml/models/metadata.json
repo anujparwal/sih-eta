@@ -1,0 +1,136 @@
+{
+  "model_version": "synthetic-next-station-v1",
+  "feature_version": "next-station-v1",
+  "trained_at": "2026-09-20T10:12:03.368123+00:00",
+  "xgboost_version": "3.4.1",
+  "features": [
+    "minutes_since_last_station",
+    "distance_remaining_next_station_km",
+    "current_delay_minutes",
+    "historical_day_of_week",
+    "historical_hour_of_day",
+    "active_event_count",
+    "active_event_severity_sum",
+    "active_event_max_severity",
+    "congestion_index"
+  ],
+  "target": "next_station_delay_minus_current_delay_minutes",
+  "prediction": "max(0, current_delay_minutes + raw_model_prediction); API also floors arrival at as_of; outside training ranges uses baseline",
+  "explanation": "exact native TreeSHAP of the residual; bias + contributions = raw residual",
+  "model_sha256": "541bd6c226b95c41cd327e70c5bb90f0c9f74a453f2c2a6a71747cf5b18eead6",
+  "network_sha256": "c0358edfc837d95f2abbec1fec3701303475dd7a2d8a5197e15e5c75e9a5edd7",
+  "data_sha256": "d73886a8bbfbd55e2e426c0a36db50d4e47bb198709b82d720ecbd2d9ea76124",
+  "provenance": {
+    "cohorts": 18,
+    "event_every_seconds": 180,
+    "generator": "simulator.engine.Train",
+    "kind": "synthetic",
+    "limitations": "Independent journeys; no shared fleet block contention. Arrival labels have up to five seconds of sampling uncertainty. Not observed railway performance.",
+    "sample_seconds": 120,
+    "seed": 2026,
+    "step_seconds": 5
+  },
+  "training_ranges": {
+    "minutes_since_last_station": [
+      0.0,
+      592.8333333333334
+    ],
+    "distance_remaining_next_station_km": [
+      0.005072463768101443,
+      465.0
+    ],
+    "current_delay_minutes": [
+      0.0,
+      928.1666666666666
+    ],
+    "historical_day_of_week": [
+      0.0,
+      6.0
+    ],
+    "historical_hour_of_day": [
+      0.0,
+      23.0
+    ],
+    "active_event_count": [
+      0.0,
+      1.0
+    ],
+    "active_event_severity_sum": [
+      0.0,
+      3.0
+    ],
+    "active_event_max_severity": [
+      0.0,
+      3.0
+    ],
+    "congestion_index": [
+      0.0,
+      1.0
+    ]
+  },
+  "split": {
+    "train": {
+      "rows": 71673,
+      "journeys": 66,
+      "first_observation": "2026-01-01T00:00:00+00:00",
+      "last_label": "2026-02-12T05:45:30+00:00",
+      "first_journey_start": "2026-01-01T00:00:00+00:00",
+      "last_journey_end": "2026-02-12T05:45:30+00:00"
+    },
+    "validation": {
+      "rows": 19593,
+      "journeys": 18,
+      "first_observation": "2026-02-14T00:00:00+00:00",
+      "last_label": "2026-02-24T05:30:25+00:00",
+      "first_journey_start": "2026-02-14T00:00:00+00:00",
+      "last_journey_end": "2026-02-24T05:30:25+00:00"
+    },
+    "test": {
+      "rows": 26146,
+      "journeys": 24,
+      "first_observation": "2026-02-26T00:00:00+00:00",
+      "last_label": "2026-03-12T06:25:25+00:00",
+      "first_journey_start": "2026-02-26T00:00:00+00:00",
+      "last_journey_end": "2026-03-12T06:25:25+00:00"
+    }
+  },
+  "parameters": {
+    "objective": "reg:squarederror",
+    "tree_method": "hist",
+    "max_depth": 6,
+    "eta": 0.07,
+    "seed": 2026,
+    "nthread": 1,
+    "min_child_weight": 10
+  },
+  "rounds": 160,
+  "validation_candidates": [
+    {
+      "max_depth": 2,
+      "mae_minutes": 6.639400691654978
+    },
+    {
+      "max_depth": 4,
+      "mae_minutes": 6.248996951481852
+    },
+    {
+      "max_depth": 6,
+      "mae_minutes": 6.09792316535248
+    }
+  ],
+  "test_metrics": {
+    "baseline": {
+      "mae_minutes": 33.94072324638568,
+      "rmse_minutes": 45.097966597923374
+    },
+    "xgboost": {
+      "mae_minutes": 5.759418833512617,
+      "rmse_minutes": 8.013164865144127
+    }
+  },
+  "mae_improvement_fraction": 0.8303094842233236,
+  "acceptance_passed": true,
+  "acceptance_rule": "Test MAE at least 10% lower and RMSE lower than carryover baseline",
+  "excluded_inputs": "Unversioned historical averages and counts (availability unknown)",
+  "limitations": "Synthetic independent simulator journeys only. Sampling-correlated rows; journeys are disjoint across time splits. No evidence of real railway accuracy. No inference for downstream stations, inferred journey anchors, or unseen congestion. Test journeys must not be used for subsequent parameter selection."
+}

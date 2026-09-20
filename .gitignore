@@ -13,3 +13,5 @@
 **/*.tsbuildinfo
 *.log
 .DS_Store
+ml/data/*
+!ml/data/.gitkeep

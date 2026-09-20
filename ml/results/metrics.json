@@ -1,0 +1,102 @@
+{
+  "overall": {
+    "baseline": {
+      "mae_minutes": 33.94072324638568,
+      "rmse_minutes": 45.097966597923374
+    },
+    "xgboost": {
+      "mae_minutes": 5.759418833512617,
+      "rmse_minutes": 8.013164865144127
+    }
+  },
+  "by_train": {
+    "12301": {
+      "baseline": {
+        "mae_minutes": 33.49359195402297,
+        "rmse_minutes": 44.91430039722774
+      },
+      "xgboost": {
+        "mae_minutes": 5.838672322145053,
+        "rmse_minutes": 8.328490616145906
+      }
+    },
+    "12621": {
+      "baseline": {
+        "mae_minutes": 43.16488844306645,
+        "rmse_minutes": 53.63411745031368
+      },
+      "xgboost": {
+        "mae_minutes": 6.506789391798806,
+        "rmse_minutes": 8.637718756214012
+      }
+    },
+    "12622": {
+      "baseline": {
+        "mae_minutes": 46.744512867647074,
+        "rmse_minutes": 58.80559355090105
+      },
+      "xgboost": {
+        "mae_minutes": 5.543786558870729,
+        "rmse_minutes": 7.301460637320369
+      }
+    },
+    "12627": {
+      "baseline": {
+        "mae_minutes": 17.83110811754727,
+        "rmse_minutes": 22.677958124859195
+      },
+      "xgboost": {
+        "mae_minutes": 5.0364781915708114,
+        "rmse_minutes": 7.049058226226719
+      }
+    },
+    "12952": {
+      "baseline": {
+        "mae_minutes": 38.287978343792304,
+        "rmse_minutes": 46.04558145301828
+      },
+      "xgboost": {
+        "mae_minutes": 6.4820914966763326,
+        "rmse_minutes": 10.047580330507683
+      }
+    },
+    "12953": {
+      "baseline": {
+        "mae_minutes": 26.071508125923387,
+        "rmse_minutes": 34.849756687242156
+      },
+      "xgboost": {
+        "mae_minutes": 5.663141257732639,
+        "rmse_minutes": 7.683253480018371
+      }
+    }
+  },
+  "split": {
+    "train": {
+      "rows": 71673,
+      "journeys": 66,
+      "first_observation": "2026-01-01T00:00:00+00:00",
+      "last_label": "2026-02-12T05:45:30+00:00",
+      "first_journey_start": "2026-01-01T00:00:00+00:00",
+      "last_journey_end": "2026-02-12T05:45:30+00:00"
+    },
+    "validation": {
+      "rows": 19593,
+      "journeys": 18,
+      "first_observation": "2026-02-14T00:00:00+00:00",
+      "last_label": "2026-02-24T05:30:25+00:00",
+      "first_journey_start": "2026-02-14T00:00:00+00:00",
+      "last_journey_end": "2026-02-24T05:30:25+00:00"
+    },
+    "test": {
+      "rows": 26146,
+      "journeys": 24,
+      "first_observation": "2026-02-26T00:00:00+00:00",
+      "last_label": "2026-03-12T06:25:25+00:00",
+      "first_journey_start": "2026-02-26T00:00:00+00:00",
+      "last_journey_end": "2026-03-12T06:25:25+00:00"
+    }
+  },
+  "acceptance_passed": true,
+  "mae_improvement_fraction": 0.8303094842233236
+}

@@ -1,0 +1,116 @@
+{
+  "type": "eta_update",
+  "data": {
+    "schema_version": "1.0",
+    "generated_at": "2026-09-17T18:40:00Z",
+    "source": "simulator",
+    "train_number": "12301",
+    "status": "active",
+    "journey_id": "22222222-2222-4222-8222-222222222222",
+    "position_id": "11111111-1111-4111-8111-111111111111",
+    "as_of": "2026-09-17T18:40:00Z",
+    "journey_started_at": "2026-09-17T01:35:00Z",
+    "timing_basis": "provided",
+    "baseline_method": "current_delay_carryover",
+    "current_delay_minutes": 5.0,
+    "features": {
+      "as_of": "2026-09-17T18:40:00Z",
+      "minutes_since_last_station": null,
+      "distance_remaining_next_station_km": 0.789473684210634,
+      "current_delay_minutes": 5.0,
+      "historical_avg_delay_minutes": null,
+      "historical_sample_count": 0,
+      "historical_station_code": "NDLS",
+      "historical_day_of_week": 4,
+      "historical_hour_of_day": 0,
+      "historical_timezone": "Asia/Kolkata",
+      "active_event_count": 0,
+      "active_event_severity_sum": 0,
+      "active_event_max_severity": 0,
+      "event_scope": "train_journey",
+      "congestion_index": 0,
+      "congestion_radius_km": 5.0,
+      "missing": [
+        "minutes_since_last_station",
+        "historical_avg_delay_minutes"
+      ]
+    },
+    "stations": [
+      {
+        "station_code": "NDLS",
+        "station_name": "NEW DELHI",
+        "sequence": 10,
+        "distance_remaining_km": 0.789473684210634,
+        "scheduled_arrival": "2026-09-17T18:40:00Z",
+        "baseline_eta": "2026-09-17T18:45:00Z",
+        "eta": "2026-09-17T18:48:07.587905Z",
+        "prediction_method": "xgboost_next_station",
+        "model_version": "synthetic-next-station-v1",
+        "eta_baseline_minutes": 5.0,
+        "eta_ml_minutes": 8.126465083333333,
+        "ml_eta": "2026-09-17T18:48:07.587905Z",
+        "predicted_delay_minutes": 8.126465082168579,
+        "explanation": {
+          "method": "tree_shap",
+          "target": "next_station_delay_residual_minutes",
+          "base_value_minutes": 34.08390808105469,
+          "contributions": [
+            {
+              "feature": "minutes_since_last_station",
+              "value": null,
+              "contribution_minutes": 0.323416531085968
+            },
+            {
+              "feature": "distance_remaining_next_station_km",
+              "value": 0.789473684210634,
+              "contribution_minutes": -30.74475860595703
+            },
+            {
+              "feature": "current_delay_minutes",
+              "value": 5.0,
+              "contribution_minutes": -0.6640721559524536
+            },
+            {
+              "feature": "historical_day_of_week",
+              "value": 4.0,
+              "contribution_minutes": 0.4275989234447479
+            },
+            {
+              "feature": "historical_hour_of_day",
+              "value": 0.0,
+              "contribution_minutes": 0.33908116817474365
+            },
+            {
+              "feature": "active_event_count",
+              "value": 0.0,
+              "contribution_minutes": -0.566001296043396
+            },
+            {
+              "feature": "active_event_severity_sum",
+              "value": 0.0,
+              "contribution_minutes": -0.0726415291428566
+            },
+            {
+              "feature": "active_event_max_severity",
+              "value": 0.0,
+              "contribution_minutes": 0.0
+            },
+            {
+              "feature": "congestion_index",
+              "value": 0.0,
+              "contribution_minutes": -7.233537326101214e-05
+            }
+          ],
+          "raw_residual_minutes": 3.126465082168579,
+          "current_delay_minutes": 5.0,
+          "clipping_adjustment_minutes": 0.0,
+          "predicted_delay_minutes": 8.126465082168579,
+          "interpretation": "Model contributions, not causal effects; synthetic training data only."
+        }
+      }
+    ],
+    "eta_baseline_minutes": 5.0,
+    "eta_ml_minutes": 8.126465083333333,
+    "ml_status": "ready"
+  }
+}

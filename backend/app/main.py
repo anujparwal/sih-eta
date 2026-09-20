@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+from contextlib import asynccontextmanager
 
 import psycopg
 from fastapi import FastAPI, Request
@@ -14,7 +15,16 @@ from app.ingest import router as ingest_router
 from app.ingest_guard import IngestGuard
 from app.read_api import router as read_router
 
-app = FastAPI(title="Dynamic Train ETA", version="0.4.0")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    from app.inference import get_predictor
+
+    get_predictor()  # Validate and warm the immutable artifact before accepting requests.
+    yield
+
+
+app = FastAPI(title="Dynamic Train ETA", version="0.5.0", lifespan=lifespan)
 app.add_middleware(IngestGuard)
 app.include_router(ingest_router)
 app.include_router(read_router)

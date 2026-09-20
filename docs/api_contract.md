@@ -1,4 +1,4 @@
-# API contract — Phase 4
+# API contract — Phase 5
 
 Local base URL: `http://localhost:8000`. OpenAPI is at `/openapi.json` and the
 interactive Swagger UI is at `/docs`. These endpoints are for the local
@@ -12,7 +12,7 @@ Database/cache ports remain private to the Compose network.
 | POST | `/ingest/position` | Store validated synthetic telemetry | 201 / 200 / 404 / 409 / 413 / 422 / 429 / 503 |
 | POST | `/ingest/event` | Store a synthetic delay event | 201 / 200 / 404 / 409 / 413 / 422 / 429 / 503 |
 | GET | `/trains` | Six seeded trains and latest journey status | 200 / 422 / 503 |
-| GET | `/trains/{train_number}/eta` | Upcoming stations, baseline and features | 200 / 404 / 422 / 503 |
+| GET | `/trains/{train_number}/eta` | Upcoming stations, baseline, next-station ML/SHAP and features | 200 / 404 / 422 / 503 |
 | GET | `/trains/{train_number}/history` | Paginated observed journey positions | 200 / 404 / 422 / 503 |
 | GET | `/stations/{code}/arrivals` | Upcoming arrivals ordered by ETA | 200 / 404 / 422 / 503 |
 | GET | `/control/fleet-status` | Fleet status and active-train delay summary | 200 / 503 |
@@ -160,7 +160,7 @@ Status definitions:
   assert that a train is running.
 - `active`: unfinished journey with its latest sample at most 30 seconds old.
 - `stale`: unfinished journey with a sample older than 30 seconds. An ETA request
-  still returns the last baseline with its original `as_of`; it is not refreshed
+  still returns the last observation-based prediction with its original `as_of`; it is not refreshed
   or extrapolated as if telemetry were live.
 - `completed`: latest observation has `next_station: null`, regardless of age.
   No upcoming stations remain. A subsequent journey replaces this status.
@@ -204,7 +204,7 @@ speed-based extrapolation or extra event penalties. `scheduled_arrival` is the
 historical timetable shifted to this simulated journey's start. For example,
 the JSON fixture is five minutes late: its NDLS schedule is 18:40 UTC and both
 `baseline_eta` and `eta` are 18:45 UTC. The independent `baseline_eta` field stays
-available when Phase 5 supplies a model-backed `eta`, `prediction_method` and
+available alongside Phase 5 model-backed `eta`, `prediction_method` and
 `model_version`; clients will not need a different envelope.
 
 `timing_basis: provided` uses the simulator's immutable origin anchor. For a
@@ -215,6 +215,53 @@ at a station it uses scheduled arrival (origin departure at the origin).
 The inferred anchor is held constant across later samples. A first observation
 during dwell is ambiguous, so inferred timing is approximate and explicitly
 labeled; it must not be represented as measured departure time.
+
+### Phase 5 additive ML fields
+
+The schema remains `1.0`; existing baseline fields are unchanged. The
+[`eta.json`](../backend/tests/examples/eta.json) and corresponding WebSocket
+example show the baseline fallback; [`eta_ml.json`](../backend/tests/examples/eta_ml.json)
+shows the reviewed model's output for the same observation.
+
+At the response top level and on each predicted station:
+
+- `eta_baseline_minutes`: signed minutes from **as_of** to `baseline_eta`.
+- `eta_ml_minutes`: minutes from **as_of** to the ML arrival, or null if unavailable.
+
+Only the **next** station receives ML output. Its `ml_eta` is the model arrival,
+`eta` equals `ml_eta`, `prediction_method` is `xgboost_next_station`, and
+`model_version` is `synthetic-next-station-v1`. `predicted_delay_minutes` is
+relative to `scheduled_arrival`, not the countdown. Later stops retain
+`eta=baseline_eta`, `prediction_method=current_delay_carryover` and null ML fields.
+Baseline countdowns may be negative when a timetable estimate is already past;
+ML arrivals are floored at `as_of`, with the adjustment reported explicitly.
+
+`ml_status` is `ready`, `unavailable` (disabled/missing/incompatible artifact),
+`outside_training_domain`, `legacy_timing`, `no_next_station`, or
+`prediction_error`. Fallbacks keep baseline service available without claiming a
+model output. Existing `active`/`stale` status still governs freshness; countdowns
+are never silently rebased to `generated_at`. Inferred legacy anchors are not
+eligible for the trained model. No-data/completed responses have null countdowns.
+
+`explanation` on the next station contains exact native TreeSHAP contributions
+in minutes for the predicted residual. The additive identity is:
+
+```text
+raw_residual_minutes = base_value_minutes + sum(contribution_minutes)
+predicted_delay_minutes = current_delay_minutes + raw_residual_minutes
+                          + clipping_adjustment_minutes
+```
+
+Each contribution has its feature name, observed value (null if missing) and
+signed contribution. A positive contribution increases the residual relative to
+the model bias, not necessarily relative to the carryover baseline. These are
+synthetic model attributions, not causal incident explanations. All contributions
+are included. The same fields and computation are used by REST, station boards
+and WebSocket messages. Fleet statistics continue to describe observed delays.
+
+Model availability does not alter storage/Redis readiness. Numerical training
+range guards and reviewed artifact checks are documented in the
+[model card](../ml/README.md), alongside measured synthetic-only accuracy.
 
 ### Journey history
 
@@ -295,7 +342,7 @@ replay log. Use history for past positions.
 
 Phase 4 subscribes to the train's Redis channel and waits for the subscription
 acknowledgement **before** fetching the initial snapshot. Committed notifications
-trigger a fresh baseline calculation off the event loop using a short-lived SQL
+trigger a fresh baseline/ML calculation off the event loop using a short-lived SQL
 session. This works across API processes; no in-process subscription registry
 is required. Live acceptance tests require delivery within one second measured
 from starting POST to receiving its ETA on an already-open socket.
@@ -385,7 +432,7 @@ and oversized requests also count. These local demo controls are not authenticat
 ## Feature definitions
 
 `app.features.compute_features(session, position, stops)` supplies both the
-API and future model integration. Values are calculated **as of the position's
+API and the offline training pipeline. Values are calculated **as of the position's
 timestamp**, excluding later observations/events. Default nearby radius is 5 km.
 
 | Field | Definition |

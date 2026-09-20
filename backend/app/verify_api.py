@@ -25,8 +25,16 @@ async def verify(api_url: str) -> None:
             assert eta["status"] == "active" and eta["timing_basis"] == "provided"
             assert eta["features"] is not None and eta["stations"]
             assert eta["baseline_method"] == "current_delay_carryover"
-            for station in eta["stations"]:
-                assert station["eta"] == station["baseline_eta"]
+            assert eta["ml_status"] == "ready", eta["ml_status"]
+            assert eta["eta_ml_minutes"] is not None
+            assert eta["stations"][0]["explanation"]["method"] == "tree_shap"
+            for index, station in enumerate(eta["stations"]):
+                if index == 0:
+                    assert station["eta"] == station["ml_eta"]
+                    assert station["prediction_method"] == "xgboost_next_station"
+                else:
+                    assert station["eta"] == station["baseline_eta"]
+                    assert station["ml_eta"] is None
                 delta = (
                     datetime.fromisoformat(station["baseline_eta"])
                     - datetime.fromisoformat(station["scheduled_arrival"])
@@ -78,6 +86,7 @@ async def verify(api_url: str) -> None:
                 {
                     "active_trains": 6,
                     "baseline_comparisons": "passed",
+                    "ml_and_shap": "passed",
                     "station_boards": "passed",
                     "websocket_connections": 13,
                     "http_to_websocket_update": "passed",

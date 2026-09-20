@@ -1,8 +1,8 @@
 # Backend
 
 Follow the root guide. Use Python 3.12, FastAPI, SQLAlchemy 2, Alembic and PostGIS.
-Phase 4 exposes health/ingestion, train ETA/history, station arrivals, Redis-cached
-fleet status and Redis-driven WebSocket snapshots. Preserve the
+Phase 5 adds next-station XGBoost/TreeSHAP inference to train ETA, station arrivals
+and WebSocket snapshots; fleet state stays independent of model predictions. Preserve the
 versioned response shapes and independent baseline fields when adding the model.
 Never substitute invented zeros for unknown history or observed station timing.
 

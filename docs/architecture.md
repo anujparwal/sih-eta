@@ -1,4 +1,4 @@
-# Architecture — Phase 4
+# Architecture — Phase 5
 
 The default stack contains FastAPI, PostgreSQL 15 with PostGIS 3.3, Redis 7.4
 and the static Next.js/Tailwind shell. The optional `simulation` Compose profile
@@ -78,8 +78,8 @@ telemetry unless explicitly started. Named volumes preserve data across restarts
 `app.eta` calculates each upcoming arrival from the immutable journey anchor,
 unwrapped timetable offsets and the current delay. Legacy journeys infer a
 stable anchor from their first sample and label that approximation. The active
-prediction and independent comparison baseline currently match; model version
-is null. No recovery rule, model training or accuracy claim is present.
+prediction and independent comparison baseline matched in Phases 3–4. Phase 5
+adds the next-station model described below while preserving that baseline.
 
 `app.features` separates database context loading from hand-tested arithmetic.
 All observations/events are bounded by the target sample time. It measures
@@ -128,8 +128,26 @@ explicit local-demo delivery policy, not a production availability guarantee.
 
 ## Scope boundary
 
-XGBoost/SHAP and measured model evaluation remain Phase 5. Passenger/station/
+Phase 5 implements XGBoost/TreeSHAP and measured synthetic evaluation. Passenger/station/
 control views remain Phase 6; the frontend is still a placeholder. Public
 deployment, authentication, TLS, trusted reverse-proxy configuration and durable
 message replay remain outside this local synthetic demo. Baseline response
 shapes and source labels remain unchanged from Phase 3.
+
+## Phase 5 prediction path
+
+The backend loads a checksum-validated CPU XGBoost JSON artifact at startup.
+`app.model_features` fixes the input order; offline `ml.dataset` calls the same
+pure arithmetic in `app.features` as serving. Unversioned historical averages
+are excluded from the model to avoid future-data leakage. Offline labels are
+observed next-station arrivals and complete journeys are split chronologically.
+
+One shared `build_eta` path serves REST, station boards and WebSockets. The next
+station receives the model residual plus observed current delay, with exact
+native TreeSHAP contributions and explicit clipping adjustments. Independent
+baseline timestamps remain available; later stations keep the baseline.
+Missing/invalid artifacts, inferred anchors and out-of-range inputs degrade to
+baseline-only predictions with an explicit status. Redis fleet caches continue
+to hold observed state, not stale model predictions. No model training runs in
+HTTP requests, API startup or CI. See `ml/README.md` for the reviewed evaluation,
+reproduction commands, deployment controls and production-job boundary.

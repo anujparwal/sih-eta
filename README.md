@@ -1,14 +1,17 @@
 # Dynamic Train ETA — SIH 2026
 
-Phase 4 realtime baseline ETA API for coaching trains on Indian routes:
+Phase 5 realtime ETA API for coaching trains on Indian routes:
 FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind shell, and a Python
 telemetry simulator. Six **real historical routes** and 63 stations are seeded
 from attributed public data. Train positions and incidents are **synthetic**.
 
-The future MVP adds XGBoost with SHAP, measured comparison against a
-current-delay carryover baseline, and passenger, station board and control room
-views. The current API implements the current-delay carryover baseline and
-shared features; ML predictions and operational dashboards remain for later phases.
+Phase 5 adds a reviewed XGBoost model with exact TreeSHAP explanations for the
+**next station**, alongside the independent current-delay carryover baseline.
+On 24 held-out synthetic journeys, MAE is **5.76 minutes versus 33.94** for the
+baseline (83.0% lower); RMSE is **8.01 versus 45.10 minutes**. These numbers
+measure this simulator, **not real railway accuracy**. See the [model card and
+reproduction steps](ml/README.md) and [evaluation](ml/results/comparison.md).
+Passenger, station board and control room interfaces remain for Phase 6.
 
 ## Start locally
 
@@ -61,7 +64,7 @@ The verifier requires at least 20 samples spanning at least 110 seconds per
 train, forward movement, plausible speeds, recorded events and observable
 delay. It prints per-train counts and distance advanced. GitHub Actions runs
 this full check on Docker Engine for each PR, alongside all tests and builds.
-The API verifier checks all six baseline comparisons, journey history, station
+The API verifier checks all six baseline/ML comparisons and SHAP payloads, journey history, station
 boards, 12 initial/reconnected WebSocket snapshots and one HTTP-to-WebSocket
 update. It appends one synthetic held-position sample to verify update delivery.
 Run it immediately after simulation stops, before the 30-second freshness window
@@ -76,7 +79,7 @@ docker compose exec postgres psql -U sih_eta -d sih_eta -c 'SELECT train_number,
 
 These examples use the default local credentials; adapt them if `.env` differs.
 
-## Baseline API
+## ETA API
 
 With simulation running (or within 30 seconds of stopping it):
 
@@ -90,9 +93,10 @@ curl --fail http://localhost:8000/control/fleet-status
 
 Connect to `ws://localhost:8000/ws/trains/12301` for an initial ETA snapshot and
 changed snapshots driven by Redis pub/sub. The live smoke requires delivery
-within one second; a 15-second reconciliation check recovers missed notifications. Every prediction is explicitly a
-**current-delay carryover baseline**: shifted timetable arrival + current delay.
-The API keeps a separate baseline field for later model comparison. Missing
+within one second; a 15-second reconciliation check recovers missed notifications. The next station has both baseline and ML countdowns, a model version and SHAP
+contributions. Downstream stations retain the carryover baseline. Missing,
+incompatible or out-of-domain models fall back to the baseline with an explicit
+`ml_status`. All countdowns are relative to `as_of`, not response time. Missing
 history stays null; stale telemetry is labeled and excluded from station boards
 by default. See the [API contract](docs/api_contract.md) for complete JSON
 examples, feature formulas, pagination, error codes and legacy timing limits.
@@ -176,7 +180,7 @@ simulator/  Real-time synthetic journeys and disruptions
 data/       Reproducible six-route historical fixture
 scripts/    Checksum-verified source extraction
 frontend/   Next.js App Router, TypeScript and Tailwind shell
-ml/         Future training, model exports and evaluation
+ml/         Offline training, reviewed JSON model, SHAP and measured evaluation
 docs/       Architecture, complete API contract and data provenance
 ```
 

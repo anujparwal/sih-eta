@@ -1,12 +1,14 @@
-"""Current-delay carryover baseline. No model, recovery heuristic or claimed accuracy."""
+"""Independent carryover baseline plus an optional next-station model prediction."""
 
 from datetime import datetime, timedelta
 
+import xgboost as xgb
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.features import compute_features
+from app.inference import get_predictor
 from app.models import LivePosition, Route, RouteStop, Station
 from app.read_schemas import StationETA, Status, TimingBasis, TrainETA
 
@@ -96,17 +98,45 @@ def build_eta(
             current_delay_minutes=None,
             features=None,
             stations=[],
+            ml_status="no_next_station",
         )
     stops = route_stops(session, route)
     anchor, basis = journey_anchor(session, position, stops)
     current = next(stop for stop in stops if stop.station_code == position.last_station)
     names = dict(session.execute(select(Station.code, Station.name)).all())
+    features = compute_features(session, position, stops)
+    explanation = None
+    predictor = get_predictor()
+    ml_status = "unavailable"
+    if not position.next_station:
+        ml_status = "no_next_station"
+    elif basis != "provided":
+        ml_status = "legacy_timing"
+    elif predictor is not None:
+        try:
+            explanation = predictor.explain(features)
+            ml_status = "ready" if explanation else "outside_training_domain"
+        except (ValueError, OverflowError, xgb.core.XGBoostError):
+            ml_status = "prediction_error"
     predictions = []
     for stop in stops:
         if stop.sequence <= current.sequence:
             continue
         scheduled = anchor + timedelta(seconds=stop.arrival_seconds - stops[0].departure_seconds)
         baseline = scheduled + timedelta(minutes=position.delay_minutes)
+        prediction = None
+        ml_eta = None
+        if explanation is not None and stop.station_code == position.next_station:
+            prediction = explanation.model_copy(deep=True)
+            minimum = max(0, (position.timestamp - scheduled).total_seconds() / 60)
+            bounded = max(minimum, prediction.predicted_delay_minutes)
+            prediction.clipping_adjustment_minutes += bounded - prediction.predicted_delay_minutes
+            prediction.predicted_delay_minutes = bounded
+            try:
+                ml_eta = scheduled + timedelta(minutes=bounded)
+            except OverflowError:
+                prediction = None
+                ml_status = "prediction_error"
         predictions.append(
             StationETA(
                 station_code=stop.station_code,
@@ -115,7 +145,16 @@ def build_eta(
                 distance_remaining_km=max(0, stop.distance_km - position.distance_km),
                 scheduled_arrival=scheduled,
                 baseline_eta=baseline,
-                eta=baseline,
+                eta=ml_eta or baseline,
+                ml_eta=ml_eta,
+                eta_baseline_minutes=(baseline - position.timestamp).total_seconds() / 60,
+                eta_ml_minutes=(ml_eta - position.timestamp).total_seconds() / 60
+                if ml_eta
+                else None,
+                predicted_delay_minutes=prediction.predicted_delay_minutes if prediction else None,
+                explanation=prediction,
+                prediction_method="xgboost_next_station" if ml_eta else "current_delay_carryover",
+                model_version=predictor.version if ml_eta else None,
             )
         )
     return TrainETA(
@@ -126,6 +165,9 @@ def build_eta(
         journey_started_at=anchor,
         timing_basis=basis,
         current_delay_minutes=position.delay_minutes,
-        features=compute_features(session, position, stops) if with_features else None,
+        features=features if with_features else None,
+        ml_status=ml_status,
+        eta_baseline_minutes=predictions[0].eta_baseline_minutes if predictions else None,
+        eta_ml_minutes=predictions[0].eta_ml_minutes if predictions else None,
         stations=predictions,
     )
