@@ -26,7 +26,7 @@ export function date(value: string | number | null) {
 export function delayText(value: number | null) {
   if (value === null) return "No observation";
   if (value <= 0) return "On time";
-  return value < 1 ? "<1 min late" : `${Math.round(value)} min late`;
+  return value < 1 ? "<1 min late" : `${Math.floor(value * 10) / 10} min late`;
 }
 export function severity(value: number | null) {
   return value === null

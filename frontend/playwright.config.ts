@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 const live = process.env.LIVE_UI === "1";
 export default defineConfig({
   testDir: "./tests",
-  testMatch: live ? "live.spec.ts" : "ui.spec.ts",
+  testMatch: live ? "live.spec.ts" : ["ui.spec.ts", "hardening.spec.ts"],
   fullyParallel: !live,
   workers: live ? 1 : 2,
   retries: process.env.CI ? 1 : 0,

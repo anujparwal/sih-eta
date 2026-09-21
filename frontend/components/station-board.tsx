@@ -7,6 +7,7 @@ import { useClock, usePolling } from "@/lib/live";
 import type { Arrivals, Network } from "@/lib/types";
 import { Badge, Empty, ErrorNotice, Loading, ViewHeader } from "./common";
 import { Icon } from "./shell";
+import { ViewSkeleton } from "./view-skeleton";
 
 export function StationBoard({ code }: { code: string }) {
   const router = useRouter();
@@ -14,6 +15,8 @@ export function StationBoard({ code }: { code: string }) {
   const board = usePolling<Arrivals>(`/stations/${code}/arrivals`, 10000);
   const now = useClock();
   const station = network.data?.stations.find((s) => s.code === code);
+  if (!board.data && !board.error && !network.error)
+    return <ViewSkeleton kind="station" />;
   return (
     <>
       <ViewHeader

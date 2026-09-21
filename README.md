@@ -1,6 +1,6 @@
 # Dynamic Train ETA — SIH 2026
 
-Phase 6 live dashboards and ETA API for coaching trains on Indian routes:
+Phase 7 hardened dashboards and ETA API for coaching trains on Indian routes:
 FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind app, and a Python
 telemetry simulator. Six **real historical routes** and 63 stations are seeded
 from attributed public data. Train positions and incidents are **synthetic**.
@@ -22,6 +22,8 @@ Phase 6 provides three responsive **RailScope** dashboards:
 
 All views label simulated telemetry, stale/missing signals and model fallbacks.
 Platforms are unavailable placeholders. Maps use schematic station connectors.
+Phase 7 adds loading skeletons, explicit failure/retry states, reliable WebSocket
+reconnection and stable map markers. See the [bug-pass report](docs/phase7_review.md).
 
 ## Start locally
 

@@ -21,8 +21,13 @@ export default function MapCanvas({
   const map = useRef<L.Map | null>(null);
   const marks = useRef<L.LayerGroup | null>(null);
   const [tilesFailed, setTilesFailed] = useState(false);
+  const markers = useRef(
+    new Map<string, { marker: L.Marker; color: string; label: string }>(),
+  );
+  const select = useRef(onSelect);
   useEffect(() => {
     if (!element.current) return;
+    const currentMarkers = markers.current;
     const instance = L.map(element.current, {
       scrollWheelZoom: false,
       attributionControl: true,
@@ -82,6 +87,7 @@ export default function MapCanvas({
     observer.observe(element.current);
     return () => {
       observer.disconnect();
+      currentMarkers.clear();
       instance.remove();
       map.current = null;
       marks.current = null;
@@ -89,7 +95,14 @@ export default function MapCanvas({
   }, [network, routeNumber]);
   useEffect(() => {
     if (!marks.current) return;
-    marks.current.clearLayers();
+    select.current = onSelect;
+    const currentNumbers = new Set(trains.map((train) => train.number));
+    for (const [number, entry] of markers.current) {
+      if (!currentNumbers.has(number)) {
+        marks.current.removeLayer(entry.marker);
+        markers.current.delete(number);
+      }
+    }
     for (const train of trains) {
       const color =
         colors[
@@ -104,17 +117,43 @@ export default function MapCanvas({
         iconSize: [34, 34],
         iconAnchor: [17, 17],
       });
-      const marker = L.marker([train.position.lat, train.position.lon], {
-        icon,
-        title: label,
-        alt: label,
-        keyboard: true,
-      });
-      const tooltip = document.createElement("span");
-      tooltip.textContent = label;
-      marker.bindTooltip(tooltip, { direction: "top", offset: [0, -17] });
-      if (onSelect) marker.on("click", () => onSelect(train.number));
-      marker.addTo(marks.current);
+      let entry = markers.current.get(train.number);
+      if (!entry) {
+        const marker = L.marker([train.position.lat, train.position.lon], {
+          icon,
+          title: label,
+          alt: label,
+          keyboard: true,
+        });
+        marker.bindTooltip(document.createElement("span"), {
+          direction: "top",
+          offset: [0, -17],
+        });
+        marker.on("click", () => select.current?.(train.number));
+        marker.addTo(marks.current);
+        entry = { marker, color, label: "" };
+        markers.current.set(train.number, entry);
+      }
+      const location = entry.marker.getLatLng();
+      if (
+        location.lat !== train.position.lat ||
+        location.lng !== train.position.lon
+      )
+        entry.marker.setLatLng([train.position.lat, train.position.lon]);
+      if (entry.color !== color) {
+        // Update the existing marker to preserve keyboard focus and open tooltips.
+        const dot = entry.marker.getElement()?.querySelector("span");
+        if (dot) dot.style.background = color;
+        entry.color = color;
+      }
+      if (entry.label !== label) {
+        const tooltip = document.createElement("span");
+        tooltip.textContent = label;
+        entry.marker.setTooltipContent(tooltip);
+        const element = entry.marker.getElement();
+        if (element) element.title = label;
+        entry.label = label;
+      }
     }
   }, [trains, onSelect, network, routeNumber]);
   return (

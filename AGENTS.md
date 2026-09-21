@@ -4,7 +4,9 @@
 
 This is the SIH 2026 Dynamic ETA Forecast for Coaching Trains monorepo.
 Phase 6 adds passenger, station and control dashboards over the evaluated
-synthetic XGBoost/TreeSHAP and Redis-backed APIs. See ml/README.md for model
+synthetic XGBoost/TreeSHAP and Redis-backed APIs. Phase 7 hardens loading,
+error states, reconnect behavior and map updates; see docs/phase7_review.md.
+See ml/README.md for model
 provenance and evaluation limits, and docs/dashboards.md for frontend behavior.
 
 The upgraded `sih_plan.md` takes precedence over the older Astra plan where

@@ -1,4 +1,4 @@
-# RailScope dashboards — Phase 6
+# RailScope dashboards — Phases 6–7
 
 Run the stack and simulator using the root README, then open port 3000.
 The app labels all telemetry as simulated. Historical timetable coordinates and
@@ -43,17 +43,28 @@ change. A trend is displayed only for the matching observation and a fresh train
 ## Shared states and transport
 
 - Green: no delay. Amber: greater than zero but less than 15 minutes. Red:
-  15 minutes or more. Thresholds use unrounded values; labels round for display.
+  15 minutes or more. Thresholds use unrounded values; labels truncate to one
+  decimal so 14.99 minutes stays amber and reads 14.9, not 15. Positive delays
+  below one minute read `<1 min late`.
 - Passenger/board arrival badges describe estimated delay at that station;
   fleet badges and counts describe observed current delay.
 - Active observations become stale after 30 seconds even if every connection
   fails. Missing data never becomes a zero delay or a fabricated position.
   Model fallback keeps the independent carryover estimate and labels its method.
-- WebSockets reconnect with bounded exponential backoff (1–10 seconds). HTTP
+- All three views have responsive loading skeletons, including route navigation.
+  Loading, no telemetry, an unknown train and failed reads have distinct messages.
+  A route error boundary provides a retry if an unexpected render fails.
+- WebSockets reconnect with bounded exponential backoff (1–10 seconds). Backoff
+  resets and the feed shows live only after a valid train snapshot arrives, not
+  merely when the socket opens. Connections without an initial snapshot close
+  after eight seconds and retry. HTTP
   snapshots also poll every 10 seconds. Older generated snapshots cannot replace
   newer ones. Cleanup aborts outstanding requests and disposes timers/sockets.
   Request failures retain the last known data with a visible error;
-  station/network reads offer retry controls.
+  station/network/fleet/history reads offer retry controls. Individual prediction
+  failures are also visible in the control room. Missing fleet responses show
+  unavailable counts rather than zero. Map markers retain their DOM elements
+  during clock and telemetry updates, preserving keyboard focus.
 - Browser HTTP uses the same-origin, GET-only Next.js allowlisted proxy.
   `API_INTERNAL_URL` is server-only; `NEXT_PUBLIC_API_BASE_URL` is fixed at build
   time and must point to a browser-reachable backend for WebSockets. Without a
@@ -69,6 +80,9 @@ run from `frontend/`. Install Chromium first with
 `npx playwright install --with-deps chromium`. The deterministic suite checks
 all three views on desktop and a mobile Chromium device profile, including live
 updates, freshness, recovery, sorting/filtering, history and overnight dates.
+Phase 7 adds service outages, delay boundaries, rejected WebSocket backoff,
+console-error assertions and 320/650/768/1024 px layout checks. Details and
+verification results are in the [review report](phase7_review.md).
 
 `npm run test:live` runs against the healthy local four-service stack immediately
 after the two-minute simulator smoke and API verifier, with no simulator still
