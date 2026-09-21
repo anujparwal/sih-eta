@@ -22,12 +22,14 @@ from app.read_schemas import (
     Arrival,
     FleetStatus,
     JourneyHistory,
+    Network,
     PositionOut,
     StationArrivals,
     TrainETA,
     TrainList,
     TrainSummary,
 )
+from app.seed import load_dataset
 
 WS_RECONCILE_SECONDS = 15.0
 
@@ -60,6 +62,12 @@ def summaries(session: Session, now: datetime) -> list[TrainSummary]:
             )
         )
     return result
+
+
+@router.get("/network", response_model=Network)
+def network() -> Network:
+    """The bundled, attributed six-route network; connector geometry is schematic."""
+    return Network.model_validate(load_dataset())
 
 
 @router.get("/trains", response_model=TrainList)

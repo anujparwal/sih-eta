@@ -3,9 +3,9 @@
 ## Scope and decisions
 
 This is the SIH 2026 Dynamic ETA Forecast for Coaching Trains monorepo.
-Phase 5 adds an evaluated synthetic XGBoost next-station model, native TreeSHAP,
-and explicit baseline fallbacks to the Redis-backed APIs. The three operational
-views remain for Phase 6. See ml/README.md for provenance and evaluation limits.
+Phase 6 adds passenger, station and control dashboards over the evaluated
+synthetic XGBoost/TreeSHAP and Redis-backed APIs. See ml/README.md for model
+provenance and evaluation limits, and docs/dashboards.md for frontend behavior.
 
 The upgraded `sih_plan.md` takes precedence over the older Astra plan where
 they differ: PostgreSQL **with PostGIS**, exactly **six simulated coaching
@@ -68,7 +68,8 @@ temporary API processes to verify cross-process delivery and shared limits.
 Simulator tests are included in the backend suite. Run the two-minute smoke check
 in README.md before declaring telemetry work complete. The same smoke also validates the read APIs and real WebSocket delivery.
 ML artifact, feature parity, leakage, SHAP and fallback tests are included.
-There are no browser flow tests yet. Use Ruff with `--config backend/pyproject.toml` for root Python scripts.
+Run frontend Playwright desktop/mobile flows and the real-stack browser smoke
+after the API verifier; see README.md. Use Ruff with `--config backend/pyproject.toml` for root Python scripts.
 
 Keep the PostGIS choice: indexed PostgreSQL time-series tables replace the older
 plan’s TimescaleDB hypertable. Use timezone-aware UTC telemetry and unwrapped IST

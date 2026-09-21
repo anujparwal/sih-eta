@@ -63,11 +63,31 @@ def active_events(position: LivePosition, events: list[Event]) -> list[Event]:
     ]
 
 
+def observed_events(session: Session, position: LivePosition) -> list[Event]:
+    """Active incidents from the same journey, as of the selected position."""
+    return active_events(
+        position,
+        list(
+            session.scalars(
+                select(Event)
+                .where(
+                    Event.train_number == position.train_number,
+                    Event.journey_id == position.journey_id,
+                    Event.timestamp <= position.timestamp,
+                    Event.timestamp > position.timestamp - timedelta(hours=1),
+                )
+                .order_by(Event.timestamp, Event.id)
+            )
+        ),
+    )
+
+
 def compute_features(
     session: Session,
     position: LivePosition,
     stops: list[RouteStop],
     radius_km: float = 5,
+    events: list[Event] | None = None,
 ) -> Features:
     current = next(stop for stop in stops if stop.station_code == position.last_station)
     upcoming = next((stop for stop in stops if stop.station_code == position.next_station), None)
@@ -100,19 +120,8 @@ def compute_features(
         if upcoming
         else None
     )
-    events = active_events(
-        position,
-        list(
-            session.scalars(
-                select(Event).where(
-                    Event.train_number == position.train_number,
-                    Event.journey_id == position.journey_id,
-                    Event.timestamp <= position.timestamp,
-                    Event.timestamp > position.timestamp - timedelta(hours=1),
-                )
-            )
-        ),
-    )
+    if events is None:
+        events = observed_events(session, position)
     return feature_values(
         position,
         upcoming,

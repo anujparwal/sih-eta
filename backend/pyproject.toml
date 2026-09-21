@@ -10,4 +10,4 @@ line-length = 100
 select = ["E", "F", "I", "UP"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["app", "simulator"]
+known-first-party = ["app", "simulator", "ml"]
