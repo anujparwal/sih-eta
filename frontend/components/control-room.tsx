@@ -20,6 +20,7 @@ import {
 import { ActiveEvents, Explanation, JourneyTimeline } from "./journey";
 import { JourneyHistory } from "./history";
 import { RouteMap } from "./route-map";
+import { ViewSkeleton } from "./view-skeleton";
 
 type Sort = "number" | "delay" | "trend";
 function Detail({
@@ -69,7 +70,16 @@ function Detail({
         </header>
         <FeedStatus feed={feed} now={now} />
         {feed.error && <ErrorNotice message={feed.error} />}
-        <JourneyTimeline route={route} network={network} eta={feed.data} />
+        {feed.data ? (
+          <JourneyTimeline route={route} network={network} eta={feed.data} />
+        ) : feed.error ? (
+          <Empty
+            title="Arrival data unavailable"
+            text="The feed is reconnecting. Journey estimates will appear when data is available."
+          />
+        ) : (
+          <Loading label="Loading journey" />
+        )}
         {feed.data && (
           <>
             <ActiveEvents eta={feed.data} />
@@ -169,6 +179,9 @@ export function ControlRoom() {
   const signals = Object.values(feeds).filter(
     (f) => f.connection === "live",
   ).length;
+  const predictionErrors = Object.entries(feeds)
+    .filter(([, feed]) => feed.error)
+    .map(([number]) => number);
   const stats = [
     {
       label: "Active trains",
@@ -195,6 +208,11 @@ export function ControlRoom() {
       color: "bad",
     },
   ];
+  if (
+    (!fleet.data && !fleet.error && !network.error) ||
+    (!network.data && !network.error && !fleet.error)
+  )
+    return <ViewSkeleton kind="control" />;
   return (
     <>
       <ViewHeader
@@ -213,6 +231,11 @@ export function ControlRoom() {
         <ErrorNotice message={network.error} retry={network.retry} />
       )}
       {fleet.error && <ErrorNotice message={fleet.error} retry={fleet.retry} />}
+      {!!predictionErrors.length && (
+        <ErrorNotice
+          message={`Prediction updates unavailable for ${predictionErrors.join(", ")}. Reconnecting automatically; observed positions remain visible where available.`}
+        />
+      )}
       <div className="stats-grid">
         {stats.map((stat) => (
           <section className={`stat-card ${stat.color}`} key={stat.label}>
@@ -250,6 +273,11 @@ export function ControlRoom() {
               )}
               onSelect={select}
             />
+          ) : network.error ? (
+            <Empty
+              title="Map unavailable"
+              text="The network could not be loaded. Use Try again above to reconnect."
+            />
           ) : (
             <Loading label="Loading fleet map" />
           )}
@@ -257,28 +285,37 @@ export function ControlRoom() {
         <section className="network-health">
           <p className="eyebrow">SIGNAL & COVERAGE</p>
           <h2>
-            Know what’s{" "}
-            <br />
+            Know what’s <br />
             behind the view.
           </h2>
           <dl>
             <div>
               <dt>Fresh observations</dt>
-              <dd>
-                {active.length} / {rows.length || 6}
-              </dd>
+              <dd>{fleet.data ? `${active.length} / ${rows.length}` : "—"}</dd>
             </div>
             <div>
               <dt>Stale signals</dt>
-              <dd>{rows.filter((r) => r.status === "stale").length}</dd>
+              <dd>
+                {fleet.data
+                  ? rows.filter((r) => r.status === "stale").length
+                  : "—"}
+              </dd>
             </div>
             <div>
               <dt>Completed journeys</dt>
-              <dd>{rows.filter((r) => r.status === "completed").length}</dd>
+              <dd>
+                {fleet.data
+                  ? rows.filter((r) => r.status === "completed").length
+                  : "—"}
+              </dd>
             </div>
             <div>
               <dt>Awaiting telemetry</dt>
-              <dd>{rows.filter((r) => r.status === "no_data").length}</dd>
+              <dd>
+                {fleet.data
+                  ? rows.filter((r) => r.status === "no_data").length
+                  : "—"}
+              </dd>
             </div>
           </dl>
           <p>

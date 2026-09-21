@@ -178,7 +178,9 @@ test("station recovers after a request timeout", async ({ page }) => {
     else await route.fulfill({ json: arrivals("NDLS") });
   });
   await page.goto("/station/NDLS");
-  await expect(page.getByText("Loading arrivals")).toBeVisible();
+  await expect(
+    page.locator(".view-skeleton").getByRole("status"),
+  ).toBeVisible();
   await page.clock.fastForward(11000);
   await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
   fail = false;

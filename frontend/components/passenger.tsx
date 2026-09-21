@@ -16,14 +16,15 @@ import {
 import { Explanation, JourneyTimeline } from "./journey";
 import { RouteMap } from "./route-map";
 import { Icon } from "./shell";
+import { ViewSkeleton } from "./view-skeleton";
 
 export function Passenger({ initialTrain }: { initialTrain: string }) {
   const network = usePolling<Network>("/network", 0);
   const [selected, setSelected] = useState(initialTrain);
   const [search, setSearch] = useState("");
-  const feed = useTrainStream(selected);
-  const now = useClock();
   const route = network.data?.routes.find((r) => r.train_number === selected);
+  const feed = useTrainStream(route ? selected : null);
+  const now = useClock();
   const data = feed.data;
   const position = data?.position;
   const status = statusAt(data?.status || "no_data", data?.as_of, now);
@@ -44,6 +45,7 @@ export function Passenger({ initialTrain }: { initialTrain: string }) {
       .toLowerCase()
       .includes(search.toLowerCase()),
   );
+  if (!network.data && !network.error) return <ViewSkeleton kind="passenger" />;
   return (
     <>
       <ViewHeader
@@ -118,164 +120,196 @@ export function Passenger({ initialTrain }: { initialTrain: string }) {
           </div>
         </aside>
         <div className="journey-main">
-          {!data && !feed.error && <Loading label="Connecting to your train" />}
-          {route && (
-            <section className="panel journey-overview">
-              <div className="overview-top">
-                <div>
-                  <span className="train-number">
-                    TRAIN {route.train_number}
-                  </span>
-                  <h2>{title(route.train_name)}</h2>
-                </div>
-                <Badge
-                  delay={data?.current_delay_minutes ?? null}
-                  status={status}
-                />
-              </div>
-              <div className="endpoints">
-                <div>
-                  <span className="station-code">
-                    {route.stops[0].station_code}
-                  </span>
-                  <span>
-                    {title(
-                      network.data!.stations.find(
-                        (s) => s.code === route.stops[0].station_code,
-                      )?.name || "Origin",
-                    )}
-                  </span>
-                </div>
-                <Icon name="arrow" size={28} />
-                <div>
-                  <span className="station-code">
-                    {route.stops.at(-1)?.station_code}
-                  </span>
-                  <span>
-                    {title(
-                      network.data!.stations.find(
-                        (s) => s.code === route.stops.at(-1)?.station_code,
-                      )?.name || "Destination",
-                    )}
-                  </span>
-                </div>
-              </div>
-              <div
-                className="progress-track"
-                role="progressbar"
-                aria-label="Journey distance covered"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round(progress)}
-              >
-                <span style={{ width: `${progress}%` }} />
-              </div>
-              <div className="progress-labels">
-                <span>
-                  {position
-                    ? `${Math.round(position.distance_km)} of ${Math.round(route.total_distance_km)} km`
-                    : "Awaiting first observation"}
-                </span>
-                <span>
-                  {position
-                    ? `${Math.round(progress)}% complete`
-                    : "Not started"}
-                </span>
-              </div>
-            </section>
-          )}
-          <div className="map-estimate-grid">
-            <section className="panel map-panel">
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">ON THE NETWORK</p>
-                  <h2>Journey map</h2>
-                </div>
-                <span className="small muted">
-                  {position
-                    ? `${Math.round(position.current_speed_kmh)} km/h`
-                    : "No position yet"}
-                </span>
-              </div>
-              {network.data && route ? (
-                <RouteMap
-                  network={network.data}
-                  routeNumber={selected}
-                  trains={
-                    position
-                      ? [
-                          {
-                            number: selected,
-                            name: route.train_name,
-                            position,
-                            status,
-                          },
-                        ]
-                      : []
-                  }
-                />
-              ) : (
-                <Loading label="Loading route" />
-              )}
-            </section>
-            <section className="panel next-arrival">
-              <p className="eyebrow">
-                {status === "completed" ? "JOURNEY COMPLETE" : "NEXT ARRIVAL"}
-              </p>
-              {next ? (
-                <>
-                  <Link
-                    className="next-station-name"
-                    href={`/station/${next.station_code}`}
-                  >
-                    {title(next.station_name)} <span>{next.station_code}</span>
-                  </Link>
-                  <div className="hero-time">
-                    {time(next.eta)}
-                    <span>IST</span>
-                  </div>
-                  <div className="arrival-date">
-                    {date(next.eta)}{" "}
-                    <span>
-                      ·{" "}
-                      {status === "stale"
-                        ? "Last known estimate"
-                        : until(next.eta, now)}
-                    </span>
-                  </div>
-                  <div className="estimate-comparison">
-                    <span className={`estimate-tag ${next.ml_eta ? "ml" : ""}`}>
-                      {next.ml_eta ? "ML estimate" : "Carryover estimate"}
-                    </span>
-                    {next.ml_eta && (
-                      <span className="muted">
-                        Baseline <del>{time(next.baseline_eta)}</del>
+          {!route ? (
+            <Empty
+              title={network.data ? "Train not found" : "Route unavailable"}
+              text={
+                network.data
+                  ? "Choose one of the six seeded trains to view its journey."
+                  : "The network could not be loaded. Use Try again above to reconnect."
+              }
+            />
+          ) : !data && !feed.error ? (
+            <Loading label="Connecting to your train" />
+          ) : (
+            <>
+              {route && (
+                <section className="panel journey-overview">
+                  <div className="overview-top">
+                    <div>
+                      <span className="train-number">
+                        TRAIN {route.train_number}
                       </span>
-                    )}
+                      <h2>{title(route.train_name)}</h2>
+                    </div>
+                    <Badge
+                      delay={data?.current_delay_minutes ?? null}
+                      status={data ? status : undefined}
+                    />
                   </div>
-                  <p className="small muted">
-                    {Math.round(next.distance_remaining_km)} km to this station
+                  <div className="endpoints">
+                    <div>
+                      <span className="station-code">
+                        {route.stops[0].station_code}
+                      </span>
+                      <span>
+                        {title(
+                          network.data!.stations.find(
+                            (s) => s.code === route.stops[0].station_code,
+                          )?.name || "Origin",
+                        )}
+                      </span>
+                    </div>
+                    <Icon name="arrow" size={28} />
+                    <div>
+                      <span className="station-code">
+                        {route.stops.at(-1)?.station_code}
+                      </span>
+                      <span>
+                        {title(
+                          network.data!.stations.find(
+                            (s) => s.code === route.stops.at(-1)?.station_code,
+                          )?.name || "Destination",
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className="progress-track"
+                    role="progressbar"
+                    aria-label="Journey distance covered"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(progress)}
+                  >
+                    <span style={{ width: `${progress}%` }} />
+                  </div>
+                  <div className="progress-labels">
+                    <span>
+                      {position
+                        ? `${Math.round(position.distance_km)} of ${Math.round(route.total_distance_km)} km`
+                        : feed.error
+                          ? "Position unavailable"
+                          : "Awaiting first observation"}
+                    </span>
+                    <span>
+                      {position
+                        ? `${Math.round(progress)}% complete`
+                        : feed.error
+                          ? "No position available"
+                          : "Not started"}
+                    </span>
+                  </div>
+                </section>
+              )}
+              <div className="map-estimate-grid">
+                <section className="panel map-panel">
+                  <div className="panel-heading">
+                    <div>
+                      <p className="eyebrow">ON THE NETWORK</p>
+                      <h2>Journey map</h2>
+                    </div>
+                    <span className="small muted">
+                      {position
+                        ? `${Math.round(position.current_speed_kmh)} km/h`
+                        : "No position yet"}
+                    </span>
+                  </div>
+                  {network.data && route ? (
+                    <RouteMap
+                      network={network.data}
+                      routeNumber={selected}
+                      trains={
+                        position
+                          ? [
+                              {
+                                number: selected,
+                                name: route.train_name,
+                                position,
+                                status,
+                              },
+                            ]
+                          : []
+                      }
+                    />
+                  ) : (
+                    <Loading label="Loading route" />
+                  )}
+                </section>
+                <section className="panel next-arrival">
+                  <p className="eyebrow">
+                    {status === "completed"
+                      ? "JOURNEY COMPLETE"
+                      : "NEXT ARRIVAL"}
                   </p>
-                  <Explanation eta={data!} />
-                </>
-              ) : (
-                <Empty
-                  title={
-                    status === "completed"
-                      ? "You’ve reached the destination"
-                      : "Waiting for departure"
-                  }
-                  text={
-                    status === "completed"
-                      ? "No upcoming stations remain in this journey."
-                      : "An arrival estimate will appear after the simulator sends its first observation."
-                  }
+                  {next ? (
+                    <>
+                      <Link
+                        className="next-station-name"
+                        href={`/station/${next.station_code}`}
+                      >
+                        {title(next.station_name)}{" "}
+                        <span>{next.station_code}</span>
+                      </Link>
+                      <div className="hero-time">
+                        {time(next.eta)}
+                        <span>IST</span>
+                      </div>
+                      <div className="arrival-date">
+                        {date(next.eta)}{" "}
+                        <span>
+                          ·{" "}
+                          {status === "stale"
+                            ? "Last known estimate"
+                            : until(next.eta, now)}
+                        </span>
+                      </div>
+                      <div className="estimate-comparison">
+                        <span
+                          className={`estimate-tag ${next.ml_eta ? "ml" : ""}`}
+                        >
+                          {next.ml_eta ? "ML estimate" : "Carryover estimate"}
+                        </span>
+                        {next.ml_eta && (
+                          <span className="muted">
+                            Baseline <del>{time(next.baseline_eta)}</del>
+                          </span>
+                        )}
+                      </div>
+                      <p className="small muted">
+                        {Math.round(next.distance_remaining_km)} km to this
+                        station
+                      </p>
+                      <Explanation eta={data!} />
+                    </>
+                  ) : (
+                    <Empty
+                      title={
+                        !data && feed.error
+                          ? "Arrival data unavailable"
+                          : status === "completed"
+                            ? "You’ve reached the destination"
+                            : "Waiting for departure"
+                      }
+                      text={
+                        !data && feed.error
+                          ? "The feed is reconnecting. An estimate will appear when train data is available."
+                          : status === "completed"
+                            ? "No upcoming stations remain in this journey."
+                            : "An arrival estimate will appear after the simulator sends its first observation."
+                      }
+                    />
+                  )}
+                </section>
+              </div>
+              {data && route && network.data && (
+                <JourneyTimeline
+                  route={route}
+                  network={network.data}
+                  eta={data}
                 />
               )}
-            </section>
-          </div>
-          {route && network.data && (
-            <JourneyTimeline route={route} network={network.data} eta={data} />
+            </>
           )}
         </div>
       </div>

@@ -48,14 +48,16 @@ export function usePolling<T>(path: string | null, interval = 10000) {
         succeeded = true;
         if (!closed)
           setState({ path, data, error: null, received: Date.now() });
-      } catch {
+      } catch (error) {
         if (!closed)
           setState((prev) => ({
             path,
             data: prev.path === path ? prev.data : null,
             received: prev.path === path ? prev.received : null,
             error:
-              "Unable to load train data. Check the connection or try again.",
+              error instanceof Error && error.name !== "AbortError"
+                ? error.message
+                : "The request timed out. Retrying automatically.",
           }));
       } finally {
         clearTimeout(timeout);
@@ -124,6 +126,8 @@ function subscribeTrain(
   let retry: ReturnType<typeof setTimeout>;
   let poll: ReturnType<typeof setTimeout>;
   let backoff = 1000;
+  let streamReady = false;
+  let handshake: ReturnType<typeof setTimeout>;
   const controllers = new Set<AbortController>();
   async function refresh() {
     const controller = new AbortController();
@@ -137,16 +141,17 @@ function subscribeTrain(
       if (!closed)
         update((prev) => ({
           ...reduceSnapshot(prev, data),
-          connection:
-            socket?.readyState === WebSocket.OPEN ? "live" : "polling",
+          connection: streamReady ? "live" : "polling",
         }));
-    } catch {
+    } catch (error) {
       if (!closed)
         update((prev) => ({
           ...prev,
-          connection:
-            socket?.readyState === WebSocket.OPEN ? "live" : "offline",
-          error: "Train data is unavailable. Reconnecting…",
+          connection: streamReady ? "live" : "offline",
+          error:
+            error instanceof Error && error.name !== "AbortError"
+              ? error.message
+              : "Train data request timed out. Reconnecting…",
         }));
     } finally {
       clearTimeout(timeout);
@@ -162,39 +167,48 @@ function subscribeTrain(
         `${location.protocol}//${location.hostname}:8000`;
       const url = new URL(`${base.replace(/\/$/, "")}/ws/trains/${number}`);
       url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-      socket = new WebSocket(url);
-      socket.onopen = () => {
-        if (!closed) {
-          backoff = 1000;
-          update((prev) => ({ ...prev, connection: "live", error: null }));
-        }
-      };
-      socket.onmessage = (event) => {
-        if (closed) return;
+      const candidate = new WebSocket(url);
+      socket = candidate;
+      streamReady = false;
+      handshake = setTimeout(() => {
+        if (!closed && !streamReady) candidate.close();
+      }, 8000);
+      // An accepted handshake is not evidence that the server can deliver data.
+      candidate.onmessage = (event) => {
+        if (closed || socket !== candidate) return;
         try {
           const message = JSON.parse(event.data);
           if (
             message.type === "eta_update" &&
-            message.data.train_number === number
-          )
+            message.data?.train_number === number &&
+            Array.isArray(message.data.stations) &&
+            Array.isArray(message.data.active_events) &&
+            Number.isFinite(Date.parse(message.data.generated_at))
+          ) {
+            clearTimeout(handshake);
+            streamReady = true;
+            backoff = 1000;
             update((prev) => ({
               ...reduceSnapshot(prev, message.data),
               connection: "live",
             }));
-          else if (message.type === "error")
-            update((prev) => ({
-              ...prev,
-              error: "Live updates interrupted. Retrying…",
-            }));
+          } else {
+            throw new Error("Invalid or unavailable live snapshot");
+          }
         } catch {
+          streamReady = false;
           update((prev) => ({
             ...prev,
-            error: "An update could not be read. Retrying…",
+            connection: prev.data ? "polling" : "offline",
+            error: "Live updates interrupted. Retrying…",
           }));
+          candidate.close();
         }
       };
-      socket.onerror = () => socket?.close();
-      socket.onclose = () => {
+      candidate.onerror = () => candidate.close();
+      candidate.onclose = () => {
+        clearTimeout(handshake);
+        streamReady = false;
         if (!closed) {
           update((prev) => ({
             ...prev,
@@ -214,28 +228,36 @@ function subscribeTrain(
     closed = true;
     clearTimeout(retry);
     clearTimeout(poll);
+    clearTimeout(handshake);
     for (const c of controllers) c.abort();
     if (socket) {
       socket.onclose = null;
       socket.onerror = null;
-      socket.close();
+      socket.onmessage = null;
+      if (socket.readyState === WebSocket.CONNECTING) {
+        // Closing during CONNECTING creates browser console errors on navigation.
+        const pending = socket;
+        pending.onopen = () => pending.close();
+      } else socket.close();
     }
   };
 }
 
-export function useTrainStream(number: string) {
-  const [state, setState] = useState<{ number: string; feed: Feed }>({
+export function useTrainStream(number: string | null) {
+  const [state, setState] = useState<{ number: string | null; feed: Feed }>({
     number,
     feed: emptyFeed,
   });
   useEffect(
     () =>
-      subscribeTrain(number, (update) =>
-        setState((prev) => ({
-          number,
-          feed: update(prev.number === number ? prev.feed : emptyFeed),
-        })),
-      ),
+      number
+        ? subscribeTrain(number, (update) =>
+            setState((prev) => ({
+              number,
+              feed: update(prev.number === number ? prev.feed : emptyFeed),
+            })),
+          )
+        : undefined,
     [number],
   );
   return state.number === number ? state.feed : emptyFeed;

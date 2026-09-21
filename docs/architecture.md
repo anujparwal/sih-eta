@@ -1,4 +1,4 @@
-# Architecture — Phase 6
+# Architecture — Phase 7
 
 The default stack contains FastAPI, PostgreSQL 15 with PostGIS 3.3, Redis 7.4
 and the Next.js/Tailwind dashboards. The optional `simulation` Compose profile
@@ -132,7 +132,9 @@ explicit local-demo delivery policy, not a production availability guarantee.
 ## Scope boundary
 
 Phases 5–6 implement XGBoost/TreeSHAP, measured synthetic evaluation and all
-three operational views. See [dashboard behavior](dashboards.md). Public
+three operational views. Phase 7 hardens frontend loading, failure recovery,
+WebSocket reconnection and map updates; see the [bug-pass report](phase7_review.md)
+and [dashboard behavior](dashboards.md). Public
 deployment, authentication, TLS, trusted reverse-proxy configuration and durable
 message replay remain outside this local synthetic demo. Baseline response
 shapes and source labels remain unchanged from Phase 3.

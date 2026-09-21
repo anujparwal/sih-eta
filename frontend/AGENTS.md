@@ -2,7 +2,8 @@
 
 Follow the root guide. Use Next.js App Router, strict TypeScript and Tailwind
 CSS 4 through `@tailwindcss/postcss`. Phase 6 implements passenger, station
-and control views. Keep network/telemetry sourced from the backend; test-only
+and control views; Phase 7 adds explicit loading/error states and reconnect
+regressions. Keep network/telemetry sourced from the backend; test-only
 fixtures belong in tests/.
 
 Use semantic HTML, visible keyboard focus for controls and responsive
