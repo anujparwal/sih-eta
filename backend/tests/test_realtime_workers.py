@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from websockets.asyncio.client import connect
 
 from app import realtime
-from app.models import LivePosition
+from app.models import Event, LivePosition
 from simulator.engine import Fleet
 
 
@@ -95,12 +95,35 @@ def test_cross_process_updates_under_one_second_and_shared_budget(
                     pass
                 else:
                     raise AssertionError("Retry emitted duplicate ETA")
+                # An event at the current observation time must push a new snapshot
+                # without requiring another position, even across different API workers.
+                incident = {
+                    "id": str(uuid4()),
+                    "journey_id": sample["journey_id"],
+                    "train_number": "12301",
+                    "timestamp": sample["timestamp"],
+                    "event_type": "weather",
+                    "severity": 2,
+                    "duration_seconds": 120,
+                    "description": "Synthetic cross-process event",
+                }
+                started = time.perf_counter()
+                response = await client.post(
+                    f"http://127.0.0.1:{ports[0]}/ingest/event", json=incident
+                )
+                assert response.status_code == 201, response.text
+                event_update = json.loads(await asyncio.wait_for(ws.recv(), 1))["data"]
+                assert time.perf_counter() - started < 1
+                assert event_update["position_id"] == sample["id"]
+                assert [e["id"] for e in event_update["active_events"]] == [incident["id"]]
+                assert event_update["features"]["active_event_severity_sum"] == 2
                 async with connect(f"ws://127.0.0.1:{ports[1]}/ws/trains/12301") as reconnected:
                     state = json.loads(await asyncio.wait_for(reconnected.recv(), 3))
                     assert state["data"]["position_id"] == sample["id"]
-                # Six accepted ingests so far; invalid payloads count toward the same
+                    assert state["data"]["active_events"] == event_update["active_events"]
+                # Seven accepted ingests so far; invalid payloads count toward the same
                 # peer budget on either process and forwarding headers cannot evade it.
-                for index in range(6):
+                for index in range(5):
                     response = await client.post(
                         f"http://127.0.0.1:{ports[index % 2]}/ingest/event", json={}
                     )
@@ -158,6 +181,7 @@ def test_cross_process_updates_under_one_second_and_shared_budget(
         for log in logs:
             log.close()
         with Session(db_engine) as session, session.begin():
+            session.execute(delete(Event).where(Event.journey_id == UUID(initial["journey_id"])))
             session.execute(
                 delete(LivePosition).where(LivePosition.journey_id == UUID(initial["journey_id"]))
             )

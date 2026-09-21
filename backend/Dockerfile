@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
     && chown appuser:appuser /app
 COPY --chown=appuser:appuser backend/ .
 COPY --chown=appuser:appuser data/ ./data/
+COPY --chown=appuser:appuser docs/api_contract.md ./docs/api_contract.md
 COPY --chown=appuser:appuser simulator/ ./simulator/
 COPY --chown=appuser:appuser scripts/ ./scripts/
 COPY --chown=appuser:appuser ml/ ./ml/
