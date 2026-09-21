@@ -1,4 +1,4 @@
-# API contract — Phase 5
+# API contract — Phase 6
 
 Local base URL: `http://localhost:8000`. OpenAPI is at `/openapi.json` and the
 interactive Swagger UI is at `/docs`. These endpoints are for the local
@@ -11,6 +11,7 @@ Database/cache ports remain private to the Compose network.
 | GET | `/ready` | PostGIS query, seeded route check and Redis ping | 200 / 503 |
 | POST | `/ingest/position` | Store validated synthetic telemetry | 201 / 200 / 404 / 409 / 413 / 422 / 429 / 503 |
 | POST | `/ingest/event` | Store a synthetic delay event | 201 / 200 / 404 / 409 / 413 / 422 / 429 / 503 |
+| GET | `/network` | Bundled sourced stations, ordered route stops and timetable offsets | 200 |
 | GET | `/trains` | Six seeded trains and latest journey status | 200 / 422 / 503 |
 | GET | `/trains/{train_number}/eta` | Upcoming stations, baseline, next-station ML/SHAP and features | 200 / 404 / 422 / 503 |
 | GET | `/trains/{train_number}/history` | Paginated observed journey positions | 200 / 404 / 422 / 503 |
@@ -460,3 +461,27 @@ their values, and excludes them from hourly lookup. History starts empty. Any
 future history import must use attributed past measurements; Phase 3 does not
 collect, train on, or seed invented delay averages. Downgrade refuses to discard
 hourly records: export and remove those records before downgrading to Phase 2.
+
+
+## Phase 6 dashboard fields
+
+`GET /network` returns `dataset_version`, `schedule_timezone`, `geometry_kind`,
+`stations` (code, name, lat, lon, zone), `routes` (train number/name, total distance
+and ordered stops with sequence, station code, arrival/departure seconds and
+cumulative distance), and `sources`. It reads the bundled, checksum-tested
+historical fixture; it does not download railway data or query telemetry.
+
+Train ETA REST and WebSocket snapshots additionally expose `position` (the full
+PositionOut selected by `position_id`, or null) and `active_events` (EventOut
+objects, empty if none). Events match the current train/journey and are active
+at `as_of`; they use the same observation list as the feature calculation,
+ordered by timestamp and ID. Events arriving after the selected position time
+are excluded until an eligible observation. These fields let maps, timeline,
+explanations and events share a consistent sample rather than racing separate
+HTTP reads. Existing ETA fields and fleet-cache semantics are unchanged.
+
+The Next.js app exposes a GET-only `/api/*` proxy for the listed read paths
+(network, trains, ETA/history, station arrivals and fleet status). Unknown paths
+return 404, unsupported methods 405, and unreachable upstream reads a sanitized
+503. It forwards only allowlisted query parameters to a fixed configured server.
+WebSockets connect directly to the browser-visible backend URL.

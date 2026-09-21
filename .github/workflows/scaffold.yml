@@ -33,6 +33,11 @@ jobs:
           npm run lint
           npm run typecheck
           npm run build
+      - name: Check desktop and mobile browser flows
+        working-directory: frontend
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
       - name: Start four healthy services on Docker Engine
         run: |
           cp .env.example .env
@@ -53,6 +58,9 @@ jobs:
           docker compose --profile simulation run --rm -T simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
           docker compose run --rm -T backend python -m app.verify_telemetry --since "$SIMULATION_START"
           docker compose run --rm -T backend python -m app.verify_api
+      - name: Verify browsers against the real API and model
+        working-directory: frontend
+        run: npm run test:live
       - name: Capture service status and logs
         if: always()
         run: |

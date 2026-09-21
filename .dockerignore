@@ -12,3 +12,6 @@
 **/*.log
 
 ml/data/
+
+frontend/test-results/
+frontend/playwright-report/

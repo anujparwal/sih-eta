@@ -1,7 +1,7 @@
 # Dynamic Train ETA — SIH 2026
 
-Phase 5 realtime ETA API for coaching trains on Indian routes:
-FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind shell, and a Python
+Phase 6 live dashboards and ETA API for coaching trains on Indian routes:
+FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind app, and a Python
 telemetry simulator. Six **real historical routes** and 63 stations are seeded
 from attributed public data. Train positions and incidents are **synthetic**.
 
@@ -11,7 +11,17 @@ On 24 held-out synthetic journeys, MAE is **5.76 minutes versus 33.94** for the
 baseline (83.0% lower); RMSE is **8.01 versus 45.10 minutes**. These numbers
 measure this simulator, **not real railway accuracy**. See the [model card and
 reproduction steps](ml/README.md) and [evaluation](ml/results/comparison.md).
-Passenger, station board and control room interfaces remain for Phase 6.
+Phase 6 provides three responsive **RailScope** dashboards:
+
+- [Passenger](http://localhost:3000): search six trains, watch live positions on
+  Leaflet/OpenStreetMap, and compare next-station ML and carryover estimates.
+- [Station board](http://localhost:3000/station/NDLS): choose any of 63 stations;
+  high-contrast arrivals refresh every 10 seconds, with IST dates and update age.
+- [Control room](http://localhost:3000/control): monitor six trains, filter and
+  sort delays/trends, and open a journey's timeline, recorded history and events.
+
+All views label simulated telemetry, stale/missing signals and model fallbacks.
+Platforms are unavailable placeholders. Maps use schematic station connectors.
 
 ## Start locally
 
@@ -30,8 +40,8 @@ the checked-in fixture without downloading railway data.
 The backend applies Alembic migrations and seeds the network before serving.
 Seeding is idempotent and does not delete telemetry. All four default services
 should become healthy. Open [the frontend](http://localhost:3000) or
-[API docs](http://localhost:8000/docs). The frontend is still a placeholder;
-use the train, ETA, history, station-arrivals and fleet APIs during this phase.
+[API docs](http://localhost:8000/docs). Start the simulator below to populate
+the dashboards; without telemetry they show waiting/empty states.
 
 ```sh
 curl --fail http://localhost:8000/ready
@@ -154,7 +164,16 @@ npm ci
 npm run lint
 npm run typecheck
 npm run build
+npx playwright install --with-deps chromium
+npm run test:e2e
 ```
+
+The desktop/mobile suite uses deterministic test fixtures and mocked OSM tiles.
+For the real API/Redis/model browser check, run `npm run test:live` from
+`frontend/` immediately after the two-minute smoke and API verifier, with no
+other simulator running. It adds one synthetic held-position sample and checks
+its WebSocket update, station arrival and journey history in the browser.
+`UI_BASE_URL` and `LIVE_API_URL` can override the default localhost ports.
 
 For Python development, from `backend/` with Python 3.12:
 
@@ -179,7 +198,7 @@ backend/    Models, migrations, ingestion, baseline ETA/features, REST/WS APIs, 
 simulator/  Real-time synthetic journeys and disruptions
 data/       Reproducible six-route historical fixture
 scripts/    Checksum-verified source extraction
-frontend/   Next.js App Router, TypeScript and Tailwind shell
+frontend/   Next.js passenger, station and control dashboards
 ml/         Offline training, reviewed JSON model, SHAP and measured evaluation
 docs/       Architecture, complete API contract and data provenance
 ```
@@ -197,8 +216,13 @@ geometry lengths. The historical_delays table starts empty.
 The `.env.example` defaults are for local development. Backend/frontend ports
 bind to loopback; PostgreSQL and Redis are not published. If a port is busy,
 change BACKEND_PORT or FRONTEND_PORT. Keep NEXT_PUBLIC_API_BASE_URL aligned
-with the backend port and rebuild the frontend. The browser URL and server-only
-API_INTERNAL_URL are reserved for later UI integration.
+with the backend port and rebuild the frontend. Browser HTTP reads use the Next.js `/api/*` proxy and server-only
+API_INTERNAL_URL (Compose default `http://backend:8000`). The proxy allows only
+known read endpoints and does not expose ingestion. WebSockets connect directly
+to NEXT_PUBLIC_API_BASE_URL; use HTTPS there for WSS on an HTTPS frontend.
+OSM tiles require internet access and retain visible attribution. If tiles fail,
+the schematic routes and position markers still work; no offline tile download
+or prefetching is performed. See [dashboard behavior](docs/dashboards.md).
 
 ```sh
 docker compose --profile simulation logs --tail=100

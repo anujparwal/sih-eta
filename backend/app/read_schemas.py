@@ -4,9 +4,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas import PositionIn
+from app.schemas import EventIn, PositionIn
 
 Status = Literal["no_data", "active", "stale", "completed"]
 TimingBasis = Literal["provided", "inferred_from_first_position", "unavailable"]
@@ -34,6 +34,47 @@ class Features(BaseModel):
 
 class PositionOut(PositionIn):
     model_config = ConfigDict(from_attributes=True)
+
+
+class EventOut(EventIn):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class NetworkStation(BaseModel):
+    code: str
+    name: str
+    zone: str | None
+    lat: float
+    lon: float
+
+
+class NetworkStop(BaseModel):
+    sequence: int
+    station_code: str
+    arrival_seconds: int | None
+    departure_seconds: int | None
+    distance_km: float
+
+
+class NetworkRoute(BaseModel):
+    train_number: str
+    train_name: str
+    total_distance_km: float
+    stops: list[NetworkStop]
+
+
+class NetworkSource(BaseModel):
+    url: str
+    sha256: str
+
+
+class Network(BaseModel):
+    dataset_version: str
+    schedule_timezone: str
+    geometry_kind: str
+    sources: dict[str, NetworkSource]
+    stations: list[NetworkStation]
+    routes: list[NetworkRoute]
 
 
 class TrainSummary(BaseModel):
@@ -101,6 +142,8 @@ class TrainETA(BaseModel):
     current_delay_minutes: float | None
     features: Features | None
     stations: list[StationETA]
+    position: PositionOut | None = None
+    active_events: list[EventOut] = Field(default_factory=list)
     eta_baseline_minutes: float | None = None
     eta_ml_minutes: float | None = None
     ml_status: Literal[

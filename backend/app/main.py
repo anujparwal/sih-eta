@@ -24,7 +24,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Dynamic Train ETA", version="0.5.0", lifespan=lifespan)
+app = FastAPI(title="Dynamic Train ETA", version="0.6.0", lifespan=lifespan)
 app.add_middleware(IngestGuard)
 app.include_router(ingest_router)
 app.include_router(read_router)

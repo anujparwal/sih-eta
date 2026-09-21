@@ -1,7 +1,7 @@
-# Architecture — Phase 5
+# Architecture — Phase 6
 
 The default stack contains FastAPI, PostgreSQL 15 with PostGIS 3.3, Redis 7.4
-and the static Next.js/Tailwind shell. The optional `simulation` Compose profile
+and the Next.js/Tailwind dashboards. The optional `simulation` Compose profile
 runs the Python telemetry generator. The backend applies Alembic migrations
 and seeds the historical network before accepting requests.
 
@@ -22,7 +22,10 @@ flowchart LR
   Redis --> Fleet[Cached fleet aggregation]
   Redis --> Guard[Shared ingest rate budget]
   Guard --> API
-  Browser --> Frontend[Next.js placeholder]
+  Browser --> Frontend[Next.js passenger / station / control]
+  Frontend -->|GET proxy| REST
+  Frontend -->|GET network| Fixture
+  WS -->|direct browser connection| Browser
 ```
 
 ## Storage
@@ -128,8 +131,8 @@ explicit local-demo delivery policy, not a production availability guarantee.
 
 ## Scope boundary
 
-Phase 5 implements XGBoost/TreeSHAP and measured synthetic evaluation. Passenger/station/
-control views remain Phase 6; the frontend is still a placeholder. Public
+Phases 5–6 implement XGBoost/TreeSHAP, measured synthetic evaluation and all
+three operational views. See [dashboard behavior](dashboards.md). Public
 deployment, authentication, TLS, trusted reverse-proxy configuration and durable
 message replay remain outside this local synthetic demo. Baseline response
 shapes and source labels remain unchanged from Phase 3.

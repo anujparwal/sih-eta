@@ -394,3 +394,31 @@ def test_ml_arrival_floor_keeps_shap_adjustment_reconcilable(
         + explanation["clipping_adjustment_minutes"]
         == first["predicted_delay_minutes"]
     )
+
+
+def test_eta_snapshot_includes_matching_position_and_asof_events(
+    db, request_api, clock, send_train
+):
+    position = send_train()
+    event = dict(
+        id=str(uuid4()),
+        journey_id=position["journey_id"],
+        train_number="12301",
+        timestamp=position["timestamp"],
+        event_type="weather",
+        severity=2,
+        duration_seconds=60,
+        description="Synthetic weather",
+    )
+    assert request_api("POST", "/ingest/event", event).status_code == 201
+    for extra in [
+        dict(event, id=str(uuid4()), journey_id=str(uuid4())),
+        dict(event, id=str(uuid4()), timestamp=(NOW + timedelta(seconds=1)).isoformat()),
+    ]:
+        assert request_api("POST", "/ingest/event", extra).status_code == 201
+    eta = get(request_api, "/trains/12301/eta")
+    assert eta["position"]["id"] == eta["position_id"] == position["id"]
+    assert eta["position"]["journey_id"] == eta["journey_id"]
+    assert eta["position"]["timestamp"] == eta["as_of"]
+    assert [e["id"] for e in eta["active_events"]] == [event["id"]]
+    assert eta["features"]["active_event_count"] == len(eta["active_events"])

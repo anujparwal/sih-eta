@@ -1,9 +1,8 @@
-# Acceptance coverage through Phase 5
+# Acceptance coverage through Phase 6
 
-Phases 1–5 implement infrastructure, sourced routes, the simulator, baseline
+Phases 1–6 implement infrastructure, sourced routes, the simulator, baseline
 APIs, Redis realtime delivery, and evaluated next-station ML with SHAP.
-Passenger, station-board and control-room interfaces remain for Phase 6.
-The frontend identifies Phase 5 and labels those interfaces as planned.
+Phase 6 adds all three responsive dashboards and browser acceptance checks.
 
 | Phase | Acceptance requirement | Verification |
 | --- | --- | --- |
@@ -17,15 +16,20 @@ The frontend identifies Phase 5 and labels those interfaces as planned.
 | 4 | Fleet aggregation from cached latest state | Warm-read test forbids all SQL; staleness, eviction, corruption, future eligibility and concurrent-fill guards |
 | 4 | Shared rate limit and bounded input | Concurrent Redis budget; two workers share limits; spoofed headers, oversized/chunked/malformed/non-finite JSON |
 | 4 | Reconnect and cleanup | Initial/reconnected snapshots, duplicate suppression, missed-message reconciliation, stale timer, Redis error closure and subscription cleanup |
-
 | 5 | Shared features and chronological evaluation without label leakage | Database/offline feature parity, observed station targets, disjoint complete journeys, purged split boundaries |
 | 5 | Meaningful carryover comparison | 66 training / 18 validation / 24 test journeys; MAE 33.941 → 5.759 min, RMSE 45.098 → 8.013 min; all six train groups improve |
 | 5 | Reviewed artifact and exact SHAP | JSON/network checksums, feature/objective validation, SHAP additive identity and published model card |
 | 5 | REST, station boards and WS agree | Same next-station prediction path; independent baseline; downstream, legacy and unavailable/out-of-domain fallbacks |
 | 5 | Reproducible training and history-job stub | Deterministic seeded telemetry generator, hashed data manifest, versioned inputs; idempotent observed-arrival aggregation with dry-run default |
+| 6a | Passenger train selection, map and ETA update without refresh | Desktop/mobile browser tests; real HTTP ingestion → Redis → open browser WebSocket → displayed observation and ETA |
+| 6b | Station switcher, 10-second refresh, dates and platform placeholder | Desktop/mobile overnight and auto-refresh tests; real station arrival agrees with train ETA |
+| 6c | Fleet summaries, sorting/filtering, ML trend and journey detail | Six-train table/map, successive prediction comparison, recorded history and active event browser checks |
+| 6 | Honest connection states and recovery | Stale/no-data/model fallback, REST ordering guard, WebSocket reconnect, request timeout and API retry tests |
+| 6 | Sourced map metadata and sample-consistent events | Typed network endpoint, complete route geometry fixture, REST/WS snapshot position and as-of event backend tests |
 
 The [CI workflow](../.github/workflows/scaffold.yml) runs the combined backend
 suite with dedicated PostgreSQL and Redis test databases, Ruff, frontend checks,
+desktop/mobile Playwright flows and a browser test against the real stack,
 four-service health checks, and the two-minute simulation followed by API and
 WebSocket verification. The live run requires at least 20 samples spanning at
 least 110 seconds per train, recorded events and observable delay. The API smoke

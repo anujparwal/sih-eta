@@ -7,10 +7,10 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.features import compute_features
+from app.features import compute_features, observed_events
 from app.inference import get_predictor
 from app.models import LivePosition, Route, RouteStop, Station
-from app.read_schemas import StationETA, Status, TimingBasis, TrainETA
+from app.read_schemas import EventOut, PositionOut, StationETA, Status, TimingBasis, TrainETA
 
 STALE_AFTER_SECONDS = 30
 
@@ -104,7 +104,8 @@ def build_eta(
     anchor, basis = journey_anchor(session, position, stops)
     current = next(stop for stop in stops if stop.station_code == position.last_station)
     names = dict(session.execute(select(Station.code, Station.name)).all())
-    features = compute_features(session, position, stops)
+    events = observed_events(session, position)
+    features = compute_features(session, position, stops, events=events)
     explanation = None
     predictor = get_predictor()
     ml_status = "unavailable"
@@ -161,6 +162,8 @@ def build_eta(
         **common,
         journey_id=position.journey_id,
         position_id=position.id,
+        position=PositionOut.model_validate(position),
+        active_events=[EventOut.model_validate(e) for e in events],
         as_of=position.timestamp,
         journey_started_at=anchor,
         timing_basis=basis,

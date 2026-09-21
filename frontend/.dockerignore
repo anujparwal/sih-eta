@@ -4,3 +4,5 @@ node_modules
 out
 *.tsbuildinfo
 *.log
+test-results
+playwright-report

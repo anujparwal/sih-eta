@@ -59,8 +59,24 @@ def test_openapi_contains_phase_three_routes():
         "/ingest/position",
         "/ingest/event",
         "/trains",
+        "/network",
         "/trains/{train_number}/eta",
         "/trains/{train_number}/history",
         "/stations/{code}/arrivals",
         "/control/fleet-status",
     }
+
+
+def test_network_has_complete_sourced_geometry_and_six_routes():
+    response = get("/network")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["routes"]) == 6 and len(data["stations"]) == 63
+    stations = {s["code"] for s in data["stations"]}
+    assert set(data["sources"]) == {"timetable.csv", "stations.json"}
+    assert all(len(source["sha256"]) == 64 for source in data["sources"].values())
+    assert data["schedule_timezone"] == "Asia/Kolkata"
+    assert "schematic" in data["geometry_kind"]
+    assert all(
+        stop["station_code"] in stations for route in data["routes"] for stop in route["stops"]
+    )
