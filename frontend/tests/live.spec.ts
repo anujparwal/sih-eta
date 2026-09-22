@@ -19,6 +19,9 @@ test("real API, Redis and model drive all three browser views", async ({
   ).toBe(405);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
   await page.route("https://tile.openstreetmap.org/**", (route) =>
     route.fulfill({
       contentType: "image/png",
@@ -28,7 +31,13 @@ test("real API, Redis and model drive all three browser views", async ({
       ),
     }),
   );
-  await page.goto("/?train=12301");
+  await page.goto("/?train=12953");
+  await page.getByLabel("Train name or number").fill("12301");
+  await page
+    .locator(".train-options")
+    .getByRole("button", { name: /12301/ })
+    .click();
+  await expect(page).toHaveURL(/train=12301/);
   await expect(page.getByText("Live updates", { exact: true })).toBeVisible();
   const initialResponse = await request.get(`${api}/trains/12301/eta`);
   expect(initialResponse.ok()).toBeTruthy();

@@ -149,3 +149,10 @@ legacy buckets without new observations remain unchanged. The production
 scheduler/retrain hook is documented in the script but not enabled; production
 needs single-run locking, versioned historical snapshots, monitoring, new
 held-out data and an explicit promotion step.
+
+## Artifact smoke tests
+
+Phase 8 adds `ml/tests/test_artifact.py` to the default backend suite. It loads
+the shipped JSON, checks a finite positive delay for a known input, verifies
+reload consistency and rejects corrupted model bytes. No training runs in tests.
+See [the test guide](../docs/testing.md) for standalone and full-suite commands.

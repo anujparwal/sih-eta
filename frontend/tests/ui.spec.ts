@@ -177,11 +177,14 @@ test("station recovers after a request timeout", async ({ page }) => {
       return; // Leave this request pending until the client aborts it.
     else await route.fulfill({ json: arrivals("NDLS") });
   });
+  const networkLoaded = page.waitForResponse("**/api/network");
   await page.goto("/station/NDLS");
+  await (await networkLoaded).finished();
   await expect(
     page.locator(".view-skeleton").getByRole("status"),
   ).toBeVisible();
-  await page.clock.fastForward(11000);
+  // Run timers in order so only the deliberately stalled arrivals request times out.
+  await page.clock.runFor(11000);
   await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
   fail = false;
   await page.clock.fastForward(11000);
@@ -309,4 +312,68 @@ test("fleet comparisons reset on a new journey and missing telemetry has neutral
       .filter({ hasText: "Active trains" })
       .locator("strong"),
   ).toHaveText("00");
+});
+
+test("passenger search recovers from no matches and preserves keyboard selection on reload", async ({
+  page,
+}) => {
+  await mockDemo(page);
+  await page.goto("/");
+  const search = page.getByLabel("Train name or number");
+  await search.fill("not a seeded service");
+  await expect(
+    page.getByText("No matching train in this six-train demo."),
+  ).toBeVisible();
+  await expect(page.locator(".train-option")).toHaveCount(0);
+  await search.fill("aug kr");
+  const train = page
+    .locator(".train-options")
+    .getByRole("button", { name: /12953/ });
+  await train.press("Enter");
+  await expect(train).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(/train=12953/);
+  await page.reload();
+  await expect(
+    page.locator(".train-options").getByRole("button", { name: /12953/ }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("region", { name: "Route map for train 12953" }),
+  ).toBeVisible();
+  await expect(page.locator(".journey-overview h2")).toHaveText(
+    "Aug Kr Raj Exp",
+  );
+});
+
+test("unknown station displays a recoverable error and accepts a valid station", async ({
+  page,
+}) => {
+  await mockDemo(page);
+  await page.route("**/api/stations/FAKE/arrivals", (route) =>
+    route.fulfill({ status: 404, json: { detail: "Not found" } }),
+  );
+  await page.goto("/station/FAKE");
+  await expect(page.getByRole("main").getByRole("alert")).toContainText(
+    "Not found",
+  );
+  await expect(page.locator(".view-skeleton")).toHaveCount(0);
+  await page.getByLabel("Display station").selectOption("NDLS");
+  await expect(page).toHaveURL(/station\/NDLS/);
+  await expect(page.locator(".arrivals-table tbody tr")).toHaveCount(3);
+  await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
+});
+
+test("control detail supports keyboard opening, Escape, and focus restoration", async ({
+  page,
+}) => {
+  await mockDemo(page);
+  await page.goto("/control");
+  const opener = page.getByRole("button", { name: "View train 12301" });
+  await opener.press("Enter");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Close train detail" }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(opener).toBeFocused();
 });

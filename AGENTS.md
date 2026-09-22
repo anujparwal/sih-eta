@@ -6,6 +6,7 @@ This is the SIH 2026 Dynamic ETA Forecast for Coaching Trains monorepo.
 Phase 6 adds passenger, station and control dashboards over the evaluated
 synthetic XGBoost/TreeSHAP and Redis-backed APIs. Phase 7 hardens loading,
 error states, reconnect behavior and map updates; see docs/phase7_review.md.
+Phase 8 extends automated coverage; docs/testing.md maps requirements to tests.
 See ml/README.md for model
 provenance and evaluation limits, and docs/dashboards.md for frontend behavior.
 
@@ -49,7 +50,7 @@ From the repository root, with Docker Engine and Compose v2:
 cp .env.example .env # only if .env does not already exist
 docker compose up --build -d --wait
 docker compose exec -T postgres createdb -U sih_eta sih_eta_test # once, for default local credentials
-docker compose run --rm -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest
+docker compose run --rm -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest --require-services
 docker compose run --rm backend ruff check .
 docker compose run --rm backend ruff format --check .
 cd frontend
@@ -70,6 +71,8 @@ temporary API processes to verify cross-process delivery and shared limits.
 Simulator tests are included in the backend suite. Run the two-minute smoke check
 in README.md before declaring telemetry work complete. The same smoke also validates the read APIs and real WebSocket delivery.
 ML artifact, feature parity, leakage, SHAP and fallback tests are included.
+Default pytest collection includes ml/tests in both checkout and container layouts.
+Use --require-services for acceptance and CI; service-free partial runs may skip integrations.
 Run frontend Playwright desktop/mobile flows and the real-stack browser smoke
 after the API verifier; see README.md. Use Ruff with `--config backend/pyproject.toml` for root Python scripts.
 

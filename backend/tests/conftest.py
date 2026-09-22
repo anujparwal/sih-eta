@@ -15,6 +15,21 @@ from app.main import app
 from app.seed import load_dataset, seed_network
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--require-services",
+        action="store_true",
+        help="Fail before collection if PostGIS/Redis integration test URLs are missing",
+    )
+
+
+def pytest_configure(config):
+    if config.getoption("--require-services", default=False):
+        missing = [key for key in ("TEST_DATABASE_URL", "TEST_REDIS_URL") if not os.getenv(key)]
+        if missing:
+            raise pytest.UsageError("Full suite requires " + ", ".join(missing))
+
+
 @pytest.fixture(scope="session")
 def dataset():
     return load_dataset()

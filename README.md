@@ -1,6 +1,6 @@
 # Dynamic Train ETA — SIH 2026
 
-Phase 7 hardened dashboards and ETA API for coaching trains on Indian routes:
+Phase 8 tested dashboards and ETA API for coaching trains on Indian routes:
 FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind app, and a Python
 telemetry simulator. Six **real historical routes** and 63 stations are seeded
 from attributed public data. Train positions and incidents are **synthetic**.
@@ -139,12 +139,16 @@ in the [API contract](docs/api_contract.md).
 
 ## Tests and checks
 
+Phase 8 coverage and the complete acceptance commands are documented in
+[the test guide](docs/testing.md). Acceptance uses `--require-services` so missing
+PostGIS/Redis configuration cannot silently skip integration coverage.
+
 The backend image includes tests, simulator tests and Ruff. Create a **dedicated
 throwaway test database** once (with the default local credentials):
 
 ```sh
 docker compose exec -T postgres createdb -U sih_eta sih_eta_test
-docker compose run --rm -T -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest
+docker compose run --rm -T -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest --require-services
 docker compose run --rm -T backend ruff check .
 docker compose run --rm -T backend ruff format --check .
 ```

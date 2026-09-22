@@ -38,8 +38,14 @@ function Detail({
   const route = network.routes.find((r) => r.train_number === number)!;
   useEffect(() => {
     const element = dialog.current;
+    const opener = document.activeElement;
     element?.showModal();
-    return () => element?.close();
+    return () => {
+      element?.close();
+      // React removes the dialog before passive cleanup; native restoration can
+      // no longer find its opener, so preserve keyboard focus explicitly.
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+    };
   }, []);
   return (
     <dialog
