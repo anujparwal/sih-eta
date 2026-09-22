@@ -1,5 +1,6 @@
 services:
   postgres:
+    restart: unless-stopped
     image: docker.io/postgis/postgis:15-3.3
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-sih_eta}
@@ -15,6 +16,7 @@ services:
       start_period: 30s
 
   redis:
+    restart: unless-stopped
     image: docker.io/library/redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
@@ -26,10 +28,10 @@ services:
       retries: 12
 
   backend:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: backend/Dockerfile
-    command: ["sh", "-c", "alembic upgrade head && python -m app.seed && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-proxy-headers"]
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
@@ -40,6 +42,7 @@ services:
       REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX:-sih-eta:v1}
       INGEST_RATE_LIMIT_PER_MINUTE: ${INGEST_RATE_LIMIT_PER_MINUTE:-120}
       ETA_MODEL_ENABLED: ${ETA_MODEL_ENABLED:-true}
+      INGEST_API_KEY: ${INGEST_API_KEY:-}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -55,17 +58,19 @@ services:
       start_period: 15s
 
   simulator:
-    profiles: ["simulation"]
+    restart: unless-stopped
     build:
       context: .
       dockerfile: simulator/Dockerfile
     environment:
       API_INTERNAL_URL: http://backend:8000
+      INGEST_API_KEY: ${INGEST_API_KEY:-}
     depends_on:
       backend:
         condition: service_healthy
 
   frontend:
+    restart: unless-stopped
     build:
       context: ./frontend
       args:

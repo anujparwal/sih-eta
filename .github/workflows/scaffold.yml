@@ -1,6 +1,7 @@
 name: Train ETA checks
 
 on:
+  push:
   pull_request:
   workflow_dispatch:
 
@@ -17,6 +18,8 @@ jobs:
     timeout-minutes: 20
     env:
       NEXT_TELEMETRY_DISABLED: "1"
+      # Disposable CI stack only; Render generates its own secret.
+      INGEST_API_KEY: ci-only-ingest-key
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,24 +41,42 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           npm run test:e2e
-      - name: Start four healthy services on Docker Engine
+      - name: Build deployment images
+        run: |
+          docker compose build
+          docker compose pull postgres redis
+      - name: Start a fresh five-service demo within two minutes
         run: |
           cp .env.example .env
           docker compose config --quiet
-          docker compose up --build -d --wait --wait-timeout 180
+          STARTED=$SECONDS
+          docker compose up -d --wait --wait-timeout 110
           curl --fail http://localhost:8000/ready
           curl --fail --output /dev/null http://localhost:3000/
+          python3 - <<'PY'
+          import json, time, urllib.request
+          for attempt in range(15):
+              with urllib.request.urlopen('http://localhost:8000/trains?active_only=true', timeout=5) as response:
+                  trains = json.load(response)['trains']
+              if len(trains) == 6 and all(train['status'] == 'active' for train in trains):
+                  break
+              time.sleep(1)
+          else:
+              raise SystemExit('Default simulator did not populate all six trains')
+          PY
+          test "$((SECONDS - STARTED))" -le 120
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' -X POST http://localhost:8000/ingest/position)" = 401
       - name: Check backend inside its container
         run: |
           docker compose exec -T postgres createdb -U sih_eta sih_eta_test
-          docker compose run --rm -T -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest --require-services
+          docker compose run --rm -T -e INGEST_API_KEY= -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest --require-services
           docker compose run --rm -T backend ruff check .
           docker compose run --rm -T backend ruff format --check .
       - name: Verify two minutes of synthetic telemetry
         run: |
-          docker compose --profile simulation build simulator
+          docker compose stop simulator
           SIMULATION_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          docker compose --profile simulation run --rm -T simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
+          docker compose run --rm -T --no-deps simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
           docker compose run --rm -T backend python -m app.verify_telemetry --since "$SIMULATION_START"
           docker compose run --rm -T backend python -m app.verify_api
       - name: Verify browsers against the real API and model

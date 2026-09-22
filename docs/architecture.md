@@ -1,8 +1,7 @@
-# Architecture — Phase 7
+# Architecture — Phase 9
 
 The default stack contains FastAPI, PostgreSQL 15 with PostGIS 3.3, Redis 7.4
-and the Next.js/Tailwind dashboards. The optional `simulation` Compose profile
-runs the Python telemetry generator. The backend applies Alembic migrations
+the Next.js/Tailwind dashboards, and a continuous Python telemetry generator. The backend applies Alembic migrations
 and seeds the historical network before accepting requests.
 
 ```mermaid
@@ -73,8 +72,16 @@ Transport retries reuse the exact sample; exhausted retries fail visibly.
 
 One simulator process coordinates synthetic directional occupancy blocks. Run
 only one for the MVP. This does not represent actual track topology or signals.
-The simulator is an optional profile so ordinary development does not accumulate
-telemetry unless explicitly started. Named volumes preserve data across restarts.
+The simulator starts by default. Stop it before running another simulator or the
+bounded acceptance smoke. Named volumes preserve data across restarts.
+
+The same backend image accepts DATABASE_URL and PORT on managed hosts. Its
+startup command migrates and seeds before listening. The optional INGEST_API_KEY
+guards writes before body parsing or Redis access; the cloud Blueprint generates
+and shares a key with its one worker. Render hosts PostGIS, Redis, the API and
+worker; Vercel hosts Next.js. Public reads pass through the Next.js proxy, and
+WebSockets connect directly to the public HTTPS API as WSS. See
+[deployment](deployment.md) for the configuration and manual setup.
 
 ## Baseline and shared features
 

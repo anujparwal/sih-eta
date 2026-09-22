@@ -1,0 +1,68 @@
+# Configuration only: review docs/deployment.md before creating paid resources.
+services:
+  - type: web
+    name: sih-eta-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    region: singapore
+    plan: 0.5c-512mb
+    numInstances: 1
+    autoDeployTrigger: "off"
+    healthCheckPath: /ready
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sih-eta-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: sih-eta-redis
+          property: connectionString
+      - key: REDIS_KEY_PREFIX
+        value: sih-eta:render:v1
+      - key: INGEST_RATE_LIMIT_PER_MINUTE
+        value: "120"
+      - key: INGEST_API_KEY
+        generateValue: true
+      - key: ETA_MODEL_ENABLED
+        value: "true"
+  - type: worker
+    name: sih-eta-simulator
+    runtime: docker
+    dockerfilePath: ./simulator/Dockerfile
+    dockerContext: .
+    dockerCommand: sh -c 'exec python -m simulator.simulate --api-url "http://${API_INTERNAL_HOSTPORT}" --interval 5'
+    region: singapore
+    plan: 0.5c-512mb
+    numInstances: 1
+    autoDeployTrigger: "off"
+    envVars:
+      - key: API_INTERNAL_HOSTPORT
+        fromService:
+          type: web
+          name: sih-eta-api
+          property: hostport
+      - key: INGEST_API_KEY
+        fromService:
+          type: web
+          name: sih-eta-api
+          envVarKey: INGEST_API_KEY
+  - type: keyvalue
+    name: sih-eta-redis
+    region: singapore
+    plan: 256mb
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+databases:
+  - name: sih-eta-postgres
+    databaseName: sih_eta
+    user: sih_eta
+    region: singapore
+    plan: 0.5c-1g
+    postgresMajorVersion: "15"
+    diskSizeGB: 5
+    ipAllowList: []

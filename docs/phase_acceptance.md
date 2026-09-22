@@ -1,4 +1,4 @@
-# Acceptance coverage through Phase 6
+# Acceptance coverage through Phase 9
 
 Phases 1–6 implement infrastructure, sourced routes, the simulator, baseline
 APIs, Redis realtime delivery, and evaluated next-station ML with SHAP.
@@ -26,11 +26,14 @@ Phase 6 adds all three responsive dashboards and browser acceptance checks.
 | 6c | Fleet summaries, sorting/filtering, ML trend and journey detail | Six-train table/map, successive prediction comparison, recorded history and active event browser checks |
 | 6 | Honest connection states and recovery | Stale/no-data/model fallback, REST ordering guard, WebSocket reconnect, request timeout and API retry tests |
 | 6 | Sourced map metadata and sample-consistent events | Typed network endpoint, complete route geometry fixture, REST/WS snapshot position and as-of event backend tests |
+| 7 | Loading, errors, reconnect and map stability | [Phase 7 review](phase7_review.md), deterministic browser regression tests |
+| 8 | Expanded endpoint, feature, model and browser coverage | [Test coverage map](testing.md); full suite refuses missing integration services |
+| 9 | Default continuous simulation, portable startup and deployment instructions | Fresh-volume Compose startup, managed URL/auth/startup regressions, Render schema validation, [deployment guide](deployment.md); cloud provisioning remains manual |
 
 The [CI workflow](../.github/workflows/scaffold.yml) runs the combined backend
 suite with dedicated PostgreSQL and Redis test databases, Ruff, frontend checks,
 desktop/mobile Playwright flows and a browser test against the real stack,
-four-service health checks, and the two-minute simulation followed by API and
+five-service fresh startup with six active trains, and the two-minute simulation followed by API and
 WebSocket verification. The live run requires at least 20 samples spanning at
 least 110 seconds per train, recorded events and observable delay. The API smoke
 checks all six train baselines, ML/SHAP, history and station boards, then appends one
