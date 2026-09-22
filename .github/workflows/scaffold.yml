@@ -75,7 +75,7 @@ jobs:
       - name: Verify two minutes of synthetic telemetry
         run: |
           docker compose stop simulator
-          SIMULATION_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          SIMULATION_START="$(docker compose exec -T backend python -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())')"
           docker compose run --rm -T --no-deps simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
           docker compose run --rm -T backend python -m app.verify_telemetry --since "$SIMULATION_START"
           docker compose run --rm -T backend python -m app.verify_api

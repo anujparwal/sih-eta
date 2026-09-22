@@ -172,12 +172,14 @@ Local verification on 22 September 2026 (Compose against rootless Podman):
 - Fresh volumes and prebuilt images: **31.12 seconds** to four healthy services
   plus the running worker. The first samples for all six trains were stored
   about 21 seconds after container creation. Cold image build time is excluded.
-- **174 backend/ML tests passed with zero skips**, including the real service
+- **175 backend/ML tests passed with zero skips**, including the real service
   tests inside the backend image; Ruff lint and formatting passed.
 - Frontend lint, types and production build passed; **76 deterministic browser
   tests** and **one browser test against the new container stack** passed.
 - Authenticated two-minute smoke: **150 positions, seven events**, six active
   trains, model/SHAP and station checks passed; HTTP-to-WebSocket delivery
   measured **78.89 ms**. Both unauthenticated ingestion paths returned 401.
+- The smoke cutoff retains sub-second precision; a regression test verifies that
+  the stopped default simulator cannot contaminate the new smoke interval.
 - The Blueprint matched `https://render.com/schema/render.yaml.json`. No actual
   Render or Vercel deployment was performed.

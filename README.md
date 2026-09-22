@@ -66,12 +66,14 @@ It increases disruption frequency to exercise events during a short demo:
 
 ```sh
 docker compose stop simulator
-SIMULATION_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+SIMULATION_START="$(docker compose exec -T backend python -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())')"
 docker compose run --rm -T --no-deps simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
 docker compose run --rm -T backend python -m app.verify_telemetry --since "$SIMULATION_START"
 docker compose run --rm -T backend python -m app.verify_api
 ```
 
+The cutoff is captured inside the running backend with sub-second precision so
+a final sample from the stopped simulator cannot leak into the new run.
 The verifier requires at least 20 samples spanning at least 110 seconds per
 train, forward movement, plausible speeds, recorded events and observable
 delay. It prints per-train counts and distance advanced. GitHub Actions runs
