@@ -1701,6 +1701,8 @@ table {
     font-size: 6px;
   }
   .sidebar nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
     margin: 0;
     justify-content: space-between;
@@ -2176,4 +2178,34 @@ table {
   .skeleton-content {
     padding: 18px;
   }
+}
+
+/* Live provider lookup: independent of the six-train simulation. */
+.live-search, .live-summary { padding: 24px; }
+.live-search { margin-bottom: 24px; }
+.live-search-form { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 12px; }
+.live-search-form label { display: grid; gap: 6px; flex: 1 1 180px; font-weight: 600; }
+.live-search-form input { min-width: 0; width: 100%; background: white; border: 1px solid var(--line); border-radius: 7px; padding: 11px 12px; }
+.live-search-button { border: 0; border-radius: 7px; padding: 12px 20px; background: var(--teal); color: white; font-weight: 600; }
+.live-results { display: grid; gap: 20px; min-width: 0; }
+.live-summary h2 { margin: 8px 0; overflow-wrap: anywhere; }
+.live-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; padding: 20px 0; border-block: 1px solid var(--line); }
+.live-metrics dt { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.live-metrics dd { margin: 0; font-size: 17px; overflow-wrap: anywhere; }
+.live-metrics dd.small { font-size: 12px; }
+.live-provenance { font-size: 13px; }
+.live-route { min-width: 0; overflow: hidden; }
+.live-route .panel-heading { flex-wrap: wrap; gap: 12px; }
+.live-table-note { padding: 0 24px 16px; }
+.live-table-scroll { overflow-x: auto; }
+.live-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.live-table th, .live-table td { padding: 14px 18px; text-align: left; border-top: 1px solid var(--line); min-width: 130px; }
+.live-table thead th { background: #f7faf8; color: var(--muted); }
+.live-table tbody th { min-width: 200px; font-weight: 600; }
+@media (max-width: 900px) { .live-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 650px) {
+  .live-search, .live-summary { padding: 18px; }
+  .live-search-button { width: 100%; }
+  .live-metrics { gap: 16px; }
+  .live-metrics dd { font-size: 14px; }
 }

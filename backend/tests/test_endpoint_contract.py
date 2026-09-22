@@ -12,6 +12,7 @@ from starlette.routing import WebSocketRoute
 
 from app import read_api
 from app.main import app
+from app.railradar import LiveResult, ProviderTrain
 from app.read_schemas import (
     FleetStatus,
     JourneyHistory,
@@ -34,6 +35,7 @@ CASES = [
     ("GET", "/trains/{train_number}/history", JourneyHistory),
     ("GET", "/stations/{code}/arrivals", StationArrivals),
     ("GET", "/control/fleet-status", FleetStatus),
+    ("GET", "/live/trains/{train_number}", LiveResult),
 ]
 NOW = datetime(2026, 9, 17, 18, 40, tzinfo=UTC)
 
@@ -74,6 +76,19 @@ def test_endpoint_contract_against_real_stores(
         if value is not None:
             monkeypatch.setenv(key, value)
     app.dependency_overrides[read_api.utc_now] = lambda: NOW
+    from app import railradar
+
+    monkeypatch.setenv("RAILRADAR_API_KEY", "contract-test-key")
+    monkeypatch.setattr(
+        railradar,
+        "fetch_provider",
+        lambda number, day, key: ProviderTrain(
+            train_number=number,
+            journey_start_date=day,
+            is_live=True,
+            updated_at=NOW,
+        ),
+    )
     try:
         train = Fleet(dataset, NOW - timedelta(minutes=10), seed=42).trains[0]
         train.elapsed, train.clock = 600, 300

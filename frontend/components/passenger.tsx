@@ -54,6 +54,7 @@ export function Passenger({ initialTrain }: { initialTrain: string }) {
         subtitle="Follow your train, compare arrival estimates, and see what’s changing."
         right={<FeedStatus feed={feed} now={now} />}
       />
+      <p className="notice"><Link href="/live" className="inline-link">Looking for a real running train? Open live train lookup →</Link></p>
       {network.error && (
         <ErrorNotice message={network.error} retry={network.retry} />
       )}
