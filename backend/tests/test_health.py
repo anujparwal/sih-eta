@@ -64,6 +64,7 @@ def test_openapi_contains_phase_three_routes():
         "/trains/{train_number}/history",
         "/stations/{code}/arrivals",
         "/control/fleet-status",
+        "/live/trains/{train_number}",
     }
 
 

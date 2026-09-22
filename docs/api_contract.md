@@ -1,8 +1,9 @@
 # API contract
 
 Local base URL: `http://localhost:8000`. OpenAPI is at `/openapi.json` and the
-interactive Swagger UI is at `/docs`. These endpoints are for the local
-synthetic demo. Ingestion has shared rate limits and optional Bearer authentication
+interactive Swagger UI is at `/docs`. The `/live/trains` endpoint reads RailRadar;
+the other train endpoints serve the local synthetic demo.
+Ingestion has shared rate limits and optional Bearer authentication
 via INGEST_API_KEY; public reads and WebSockets do not require credentials.
 Database/cache ports remain private to the Compose network.
 
@@ -18,6 +19,7 @@ Database/cache ports remain private to the Compose network.
 | GET | `/trains/{train_number}/history` | Paginated observed journey positions | 200 / 404 / 422 / 503 |
 | GET | `/stations/{code}/arrivals` | Upcoming arrivals ordered by ETA | 200 / 404 / 422 / 503 |
 | GET | `/control/fleet-status` | Fleet status and active-train delay summary | 200 / 503 |
+| GET | `/live/trains/{train_number}` | On-demand RailRadar status for any five-digit train number | 200 / 404 / 422 / 429 / 503 |
 | WS | `/ws/trains/{train_number}` | Initial ETA snapshot, then changed snapshots | See transport contract below |
 
 Liveness returns `{"status":"ok"}`. Readiness returns
@@ -25,6 +27,11 @@ Liveness returns `{"status":"ok"}`. Readiness returns
 ready; unavailable dependencies become `"unavailable"` and the top-level status
 becomes `"unavailable"` with HTTP 503. Dependency checks are bounded to four
 seconds each and execute concurrently. No connection errors or secrets leak.
+
+## RailRadar live lookup
+
+See [live_data.md](live_data.md) for setup, the `date` query, normalized response,
+cache and quota behavior, freshness semantics, and separation from the simulation.
 
 ## Position ingestion
 
