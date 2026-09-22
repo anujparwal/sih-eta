@@ -84,7 +84,7 @@ Phase 7 adds service outages, delay boundaries, rejected WebSocket backoff,
 console-error assertions and 320/650/768/1024 px layout checks. Details and
 verification results are in the [review report](phase7_review.md).
 
-`npm run test:live` runs against the healthy local four-service stack immediately
+`npm run test:live` runs against the healthy local stack (default simulator stopped) immediately
 after the two-minute simulator smoke and API verifier, with no simulator still
 posting. It checks a real ingestion-to-browser WebSocket update and corresponding
 station/control displays. `UI_BASE_URL` and `LIVE_API_URL` override local URLs.

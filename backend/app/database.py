@@ -4,10 +4,16 @@ import os
 from functools import lru_cache
 
 from sqlalchemy import URL, create_engine
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 
 def database_url() -> URL:
+    if configured := os.getenv("DATABASE_URL"):
+        url = make_url(configured)
+        if url.drivername not in {"postgres", "postgresql", "postgresql+psycopg"}:
+            raise ValueError("DATABASE_URL must use PostgreSQL")
+        return url.set(drivername="postgresql+psycopg")
     return URL.create(
         "postgresql+psycopg",
         username=os.getenv("POSTGRES_USER", "sih_eta"),

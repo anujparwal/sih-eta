@@ -22,12 +22,15 @@ LOGGER = logging.getLogger("simulator")
 def post(base_url: str, path: str, payload: dict, attempts: int = 5) -> None:
     """Retry transient errors with exactly the same ID/body, so acknowledgements can be lost."""
     body = json.dumps(payload, allow_nan=False).encode()
+    headers = {"Content-Type": "application/json"}
+    if key := os.getenv("INGEST_API_KEY"):
+        headers["Authorization"] = f"Bearer {key}"
     for attempt in range(attempts):
         try:
             request = Request(
                 base_url.rstrip("/") + path,
                 data=body,
-                headers={"Content-Type": "application/json"},
+                headers=headers,
                 method="POST",
             )
             with urlopen(request, timeout=10) as response:

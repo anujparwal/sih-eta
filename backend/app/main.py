@@ -11,6 +11,7 @@ from redis.asyncio import Redis
 from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.database import database_url
 from app.ingest import router as ingest_router
 from app.ingest_guard import IngestGuard
 from app.read_api import router as read_router
@@ -42,14 +43,8 @@ async def realtime_unavailable(_request: Request, _error: RedisError) -> JSONRes
 
 async def check_postgres() -> None:
     """Verify authentication, query execution, and the required PostGIS extension."""
-    connection = await psycopg.AsyncConnection.connect(
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=os.getenv("POSTGRES_PORT", "5432"),
-        dbname=os.getenv("POSTGRES_DB", "sih_eta"),
-        user=os.getenv("POSTGRES_USER", "sih_eta"),
-        password=os.getenv("POSTGRES_PASSWORD", "sih_eta_local"),
-        connect_timeout=3,
-    )
+    dsn = database_url().set(drivername="postgresql").render_as_string(hide_password=False)
+    connection = await psycopg.AsyncConnection.connect(dsn, connect_timeout=3)
     async with connection:
         await connection.execute("SELECT postgis_version()")
         cursor = await connection.execute("SELECT 1 FROM routes LIMIT 1")

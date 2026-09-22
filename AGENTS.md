@@ -7,6 +7,8 @@ Phase 6 adds passenger, station and control dashboards over the evaluated
 synthetic XGBoost/TreeSHAP and Redis-backed APIs. Phase 7 hardens loading,
 error states, reconnect behavior and map updates; see docs/phase7_review.md.
 Phase 8 extends automated coverage; docs/testing.md maps requirements to tests.
+Phase 9 makes the simulator a default service and adds Render/Vercel deployment
+configuration; docs/deployment.md describes the manual cloud setup.
 See ml/README.md for model
 provenance and evaluation limits, and docs/dashboards.md for frontend behavior.
 
@@ -28,7 +30,7 @@ Never claim the model beats the baseline until measured evaluation proves it.
 - `data/`: checksum-pinned historical network fixture; provenance in `docs/data_sources.md`.
 - `ml/`: XGBoost training scripts, reviewed JSON artifact, SHAP and synthetic evaluation.
 - `docs/`: architecture notes and API contract.
-- `docker-compose.yml`: local PostgreSQL, Redis, backend and frontend services.
+- `docker-compose.yml`: local PostgreSQL, Redis, backend, frontend and continuous simulator services.
 
 ## Conventions
 
@@ -50,7 +52,7 @@ From the repository root, with Docker Engine and Compose v2:
 cp .env.example .env # only if .env does not already exist
 docker compose up --build -d --wait
 docker compose exec -T postgres createdb -U sih_eta sih_eta_test # once, for default local credentials
-docker compose run --rm -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest --require-services
+docker compose run --rm -e INGEST_API_KEY= -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest --require-services
 docker compose run --rm backend ruff check .
 docker compose run --rm backend ruff format --check .
 cd frontend
@@ -61,7 +63,9 @@ npm run build
 ```
 
 `docker-compose` may be substituted if Compose is installed under that name.
-Confirm all four services are healthy and `GET /ready` returns HTTP 200.
+Confirm four services are healthy, the simulator is running, all six trains
+become active and `GET /ready` returns HTTP 200. Stop the default simulator
+before the bounded two-minute smoke and real browser checks; resume it afterward.
 Integration tests require a dedicated database whose name ends in `_test`; the
 migration round-trip test recreates its application tables. Never use the running
 application database for tests. Redis tests require TEST_REDIS_URL on database 15

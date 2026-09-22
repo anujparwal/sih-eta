@@ -114,7 +114,9 @@ def test_two_minutes_generates_moving_trails_and_events_for_six_trains(dataset):
         assert all(a["timestamp"] < b["timestamp"] for a, b in zip(trail, trail[1:]))
 
 
-def test_retry_preserves_the_exact_request_body(monkeypatch):
+@pytest.mark.parametrize("key", ["", "deployment-test-key"])
+def test_retry_preserves_the_exact_request_body(monkeypatch, key):
+    monkeypatch.setenv("INGEST_API_KEY", key)
     requests = []
 
     class Response:
@@ -136,6 +138,8 @@ def test_retry_preserves_the_exact_request_body(monkeypatch):
     monkeypatch.setattr("simulator.simulate.time.sleep", lambda _: None)
     post("http://test", "/ingest/position", {"id": "saved-id"})
     assert len(requests) == 2 and requests[0].data == requests[1].data
+    for request in requests:
+        assert request.get_header("Authorization") == (f"Bearer {key}" if key else None)
 
 
 def test_invalid_payload_is_not_retried(monkeypatch):

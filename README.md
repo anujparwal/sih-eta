@@ -1,6 +1,6 @@
 # Dynamic Train ETA — SIH 2026
 
-Phase 8 tested dashboards and ETA API for coaching trains on Indian routes:
+Phase 9 deployment-ready dashboards and ETA API for coaching trains on Indian routes:
 FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind app, and a Python
 telemetry simulator. Six **real historical routes** and 63 stations are seeded
 from attributed public data. Train positions and incidents are **synthetic**.
@@ -40,42 +40,44 @@ needs internet access to download images/packages. Subsequent runs seed from
 the checked-in fixture without downloading railway data.
 
 The backend applies Alembic migrations and seeds the network before serving.
-Seeding is idempotent and does not delete telemetry. All four default services
-should become healthy. Open [the frontend](http://localhost:3000) or
-[API docs](http://localhost:8000/docs). Start the simulator below to populate
-the dashboards; without telemetry they show waiting/empty states.
+Seeding is idempotent and does not delete telemetry. All five services start
+automatically: four report healthy and the continuous simulator reports running.
+Open [the frontend](http://localhost:3000) or [API docs](http://localhost:8000/docs).
+The dashboards populate with six active trains without another command.
 
 ```sh
 curl --fail http://localhost:8000/ready
 docker compose ps
 ```
 
-To start continuous simulation as an additional service:
-
-```sh
-docker compose --profile simulation up --build -d
-```
-
 The simulator emits one sample per train about every five real seconds and
 occasionally produces delays. No railway API keys or live feeds are used.
+Use `docker compose stop simulator` to pause it and `docker compose start simulator`
+to resume with new journeys. For Render and Vercel setup, see the
+[deployment guide](docs/deployment.md). It includes environment variables,
+startup timing, single-worker updates and verification; no cloud services have
+been provisioned by this repository change.
 
 ## Two-minute acceptance check
 
-Run this with the four default services healthy and no other simulator running.
+Run this with PostgreSQL, Redis, the backend and frontend healthy. The command
+below stops the default simulator first; stop any host simulator too.
 It increases disruption frequency to exercise events during a short demo:
 
 ```sh
-docker compose --profile simulation build simulator
-SIMULATION_START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-docker compose --profile simulation run --rm -T simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
+docker compose stop simulator
+SIMULATION_START="$(docker compose exec -T backend python -c 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())')"
+docker compose run --rm -T --no-deps simulator python -m simulator.simulate --duration 120 --interval 5 --event-every 30
 docker compose run --rm -T backend python -m app.verify_telemetry --since "$SIMULATION_START"
 docker compose run --rm -T backend python -m app.verify_api
 ```
 
+The cutoff is captured inside the running backend with sub-second precision so
+a final sample from the stopped simulator cannot leak into the new run.
 The verifier requires at least 20 samples spanning at least 110 seconds per
 train, forward movement, plausible speeds, recorded events and observable
 delay. It prints per-train counts and distance advanced. GitHub Actions runs
-this full check on Docker Engine for each PR, alongside all tests and builds.
+this full check on Docker Engine for every push and PR, alongside all tests and builds.
 The API verifier checks all six baseline/ML comparisons and SHAP payloads, journey history, station
 boards, 12 initial/reconnected WebSocket snapshots and one HTTP-to-WebSocket
 update. It appends one synthetic held-position sample to verify update delivery.
@@ -126,7 +128,9 @@ per socket peer**, configurable with INGEST_RATE_LIMIT_PER_MINUTE. The normal
 six-train simulator fits this budget. Rejections return 429 with Retry-After;
 bodies above 16 KiB return 413, and invalid/non-finite JSON returns 422. Forwarded
 IP headers are not trusted; the supplied server disables proxy headers. This is
-a local demo limit, not authentication or a production proxy policy.
+a demo limit. Set INGEST_API_KEY to require a matching Bearer token on ingestion;
+the Render configuration generates and shares this secret with its worker. Read
+endpoints remain public. See the deployment guide for the hosting configuration.
 
 Redis failure returns a sanitized 503. A failure after SQL commit can leave the
 observation stored, so **retry the same UUID and body**; the retry republishes
@@ -148,7 +152,7 @@ throwaway test database** once (with the default local credentials):
 
 ```sh
 docker compose exec -T postgres createdb -U sih_eta sih_eta_test
-docker compose run --rm -T -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest --require-services
+docker compose run --rm -T -e INGEST_API_KEY= -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test -e TEST_REDIS_URL=redis://redis:6379/15 backend pytest --require-services
 docker compose run --rm -T backend ruff check .
 docker compose run --rm -T backend ruff format --check .
 ```
@@ -180,6 +184,9 @@ For the real API/Redis/model browser check, run `npm run test:live` from
 other simulator running. It adds one synthetic held-position sample and checks
 its WebSocket update, station arrival and journey history in the browser.
 `UI_BASE_URL` and `LIVE_API_URL` can override the default localhost ports.
+If ingestion authentication is enabled, export INGEST_API_KEY for the host
+simulator and live browser test. Never put it in a NEXT_PUBLIC_ variable.
+After the smoke and browser check, run `docker compose start simulator` to resume.
 
 For Python development, from `backend/` with Python 3.12:
 
@@ -231,8 +238,8 @@ the schematic routes and position markers still work; no offline tile download
 or prefetching is performed. See [dashboard behavior](docs/dashboards.md).
 
 ```sh
-docker compose --profile simulation logs --tail=100
-docker compose --profile simulation down
+docker compose logs --tail=100
+docker compose down
 ```
 
 `down` preserves data volumes. `down -v` **deletes local database/cache data**;

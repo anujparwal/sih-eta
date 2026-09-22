@@ -18,6 +18,7 @@ router = APIRouter(
     prefix="/ingest",
     tags=["synthetic telemetry"],
     responses={
+        401: {"description": "Missing or invalid ingestion credentials when INGEST_API_KEY is set"},
         413: {"description": "Request body too large"},
         429: {"description": "Shared ingestion rate limit exceeded"},
         503: {"description": "Storage or realtime service unavailable; retry the same UUID"},

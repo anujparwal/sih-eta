@@ -1,7 +1,9 @@
 """Bound ingestion before JSON parsing and apply a Redis budget across API workers."""
 
+import hmac
 import json
 import math
+import os
 
 from fastapi.responses import JSONResponse
 from redis.exceptions import RedisError
@@ -29,6 +31,16 @@ class IngestGuard:
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http" or not scope["path"].startswith("/ingest/"):
             await self.app(scope, receive, send)
+            return
+        key = os.getenv("INGEST_API_KEY", "")
+        if key and not hmac.compare_digest(
+            dict(scope["headers"]).get(b"authorization", b""), f"Bearer {key}".encode()
+        ):
+            await JSONResponse(
+                {"detail": "Valid ingestion credentials required"},
+                status_code=401,
+                headers={"WWW-Authenticate": "Bearer"},
+            )(scope, receive, send)
             return
         try:
             allowed, retry_after = await run_in_threadpool(

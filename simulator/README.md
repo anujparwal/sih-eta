@@ -7,7 +7,9 @@ python3 simulator/simulate.py --api-url http://localhost:8000 --duration 120
 ```
 
 The backend must already be migrated and seeded. See the root README for the
-Docker Compose `simulation` profile and repeatable two-minute acceptance check.
+default Docker Compose simulator and repeatable two-minute acceptance check.
+Stop that service before running this host command. When the API requires
+INGEST_API_KEY, export the same value here; it is sent only as a Bearer header.
 Omit `--duration` for continuous simulation. `--interval` defaults to five real
 seconds; `--seed 42` reproduces the movement/event random sequence with the same
 tick sequence. Sample/journey/event UUIDs are intentionally fresh each run.

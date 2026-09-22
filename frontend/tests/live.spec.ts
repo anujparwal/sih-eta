@@ -53,7 +53,12 @@ test("real API, Redis and model drive all three browser views", async ({
   held.delay_minutes +=
     (Date.parse(held.timestamp) - Date.parse(initial.position!.timestamp)) /
     60000;
-  const posted = await request.post(`${api}/ingest/position`, { data: held });
+  const posted = await request.post(`${api}/ingest/position`, {
+    data: held,
+    headers: process.env.INGEST_API_KEY
+      ? { Authorization: `Bearer ${process.env.INGEST_API_KEY}` }
+      : undefined,
+  });
   expect(posted.status(), await posted.text()).toBe(201);
   await expect
     .poll(async () =>

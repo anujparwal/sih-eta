@@ -9,8 +9,8 @@ Database/cache ports remain private to the Compose network.
 | --- | --- | --- | --- |
 | GET | `/health` | Process liveness | 200 |
 | GET | `/ready` | PostGIS query, seeded route check and Redis ping | 200 / 503 |
-| POST | `/ingest/position` | Store validated synthetic telemetry | 201 / 200 / 404 / 409 / 413 / 422 / 429 / 503 |
-| POST | `/ingest/event` | Store a synthetic delay event | 201 / 200 / 404 / 409 / 413 / 422 / 429 / 503 |
+| POST | `/ingest/position` | Store validated synthetic telemetry | 201 / 200 / 401 / 404 / 409 / 413 / 422 / 429 / 503 |
+| POST | `/ingest/event` | Store a synthetic delay event | 201 / 200 / 401 / 404 / 409 / 413 / 422 / 429 / 503 |
 | GET | `/network` | Bundled sourced stations, ordered route stops and timetable offsets | 200 |
 | GET | `/trains` | Six seeded trains and latest journey status | 200 / 422 / 503 |
 | GET | `/trains/{train_number}/eta` | Upcoming stations, baseline, next-station ML/SHAP and features | 200 / 404 / 422 / 503 |
@@ -26,6 +26,12 @@ becomes `"unavailable"` with HTTP 503. Dependency checks are bounded to four
 seconds each and execute concurrently. No connection errors or secrets leak.
 
 ## Position ingestion
+
+When INGEST_API_KEY is configured, both ingestion endpoints require
+`Authorization: Bearer <key>`. Missing or incorrect credentials return HTTP 401
+with `WWW-Authenticate: Bearer` before storage access. The key is server-side;
+public read endpoints and WebSockets do not require it. An empty key preserves
+the local demo behavior. The Render Blueprint configures a generated key.
 
 Content-Type: application/json. Example `POST /ingest/position` on train 12301,
 30 simulated seconds after leaving historical HWH:

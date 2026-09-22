@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import json
+import os
 import time
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -12,7 +13,10 @@ from websockets.asyncio.client import connect
 
 
 async def verify(api_url: str) -> None:
-    async with httpx.AsyncClient(base_url=api_url, timeout=10) as client:
+    headers = {}
+    if key := os.getenv("INGEST_API_KEY"):
+        headers["Authorization"] = f"Bearer {key}"
+    async with httpx.AsyncClient(base_url=api_url, timeout=10, headers=headers) as client:
         response = await client.get("/trains?active_only=true")
         response.raise_for_status()
         trains = response.json()["trains"]

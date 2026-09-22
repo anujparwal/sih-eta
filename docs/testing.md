@@ -18,16 +18,19 @@ shipped in `ml/models/eta_model.json`; no pickle or retraining is introduced.
 | Shipped model | `ml/tests/test_artifact.py`: load reviewed bytes, predict a finite positive delay for a known input, reload consistently, reject corrupted bytes. Existing `test_ml.py` covers SHAP, domain fallback, metadata rejection, split leakage, metrics and feature parity. |
 | Three browser flows | `frontend/tests/ui.spec.ts` and `hardening.spec.ts`: passenger search/selection and saved links, station selection/arrivals, control sorting/filtering/detail/history. Desktop/mobile, loading/outage/recovery, stale states, delay thresholds, responsive bounds, keyboard actions and focus restoration. |
 | Real browser integration | `frontend/tests/live.spec.ts`: actual passenger search, ingestion-to-browser update, matching station ETA and control detail against the running API/model. Console and page errors fail the test. Only public map tiles are replaced. |
+| Smoke interval | `test_telemetry_verifier.py`: a stopped simulator sample in the same second is excluded by the precise cutoff; truncating the cutoff reproduces the two-journey rejection. |
+| Deployment | `test_deployment.py`: managed PostgreSQL URLs preserve credentials/TLS; readiness uses the same URL; startup validates PORT and refuses to serve after failed migrations/seeding; optional ingestion authentication protects both write endpoints while reads remain public. Simulator retry tests preserve credentials and payloads. |
 | CI configuration | `test_test_configuration.py`: the full-suite flag refuses missing service URLs before collection instead of reporting a partial pass with skipped integration tests. |
 
 ## Run the acceptance suite
 
 From the repository root, with Docker Engine and Compose v2, follow README.md to
-start all four services. Create the dedicated test database once:
+start all five services. Create the dedicated test database once:
 
 ```sh
 docker compose exec -T postgres createdb -U sih_eta sih_eta_test
 docker compose run --rm -T \
+  -e INGEST_API_KEY= \
   -e TEST_DATABASE_URL=postgresql+psycopg://sih_eta:sih_eta_local@postgres:5432/sih_eta_test \
   -e TEST_REDIS_URL=redis://redis:6379/15 \
   backend pytest --require-services
