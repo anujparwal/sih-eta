@@ -1,6 +1,6 @@
 # Dynamic Train ETA — SIH 2026
 
-Phase 9 deployment-ready dashboards and ETA API for coaching trains on Indian routes:
+RailScope provides dashboards and an ETA API for coaching trains on Indian routes:
 FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind app, and a Python
 telemetry simulator. Six **real historical routes** and 63 stations are seeded
 from attributed public data. Train positions and incidents are **synthetic**.
@@ -25,14 +25,25 @@ Platforms are unavailable placeholders. Maps use schematic station connectors.
 Phase 7 adds loading skeletons, explicit failure/retry states, reliable WebSocket
 reconnection and stable map markers. See the [bug-pass report](docs/phase7_review.md).
 
+For the submission overview, model results, limitations and a short demo sequence,
+start with [docs/README.md](docs/README.md).
+
 ## Start locally
 
-With Docker Engine/Desktop and Compose v2, from a fresh clone:
+Install Git and Docker Engine/Desktop with Compose v2, start Docker, and use a
+POSIX shell (Linux/macOS or WSL on Windows). No host Python/Node installation or
+model training is needed for the container demo. From a new terminal:
 
 ```sh
+git clone https://github.com/anujparwal/sih-eta.git
+cd sih-eta
 cp .env.example .env
 docker compose up --build -d --wait
 ```
+
+On an existing checkout, run from the repository root and keep your existing
+`.env`; copy the example only if that file is absent. Ports 3000 and 8000 must be
+free (see [configuration](#configuration-and-cleanup) for alternate ports).
 
 `docker-compose` can be substituted if that is your Compose executable name.
 `docker-compose up` also starts the stack in the foreground. The first build

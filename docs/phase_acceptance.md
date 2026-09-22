@@ -1,4 +1,4 @@
-# Acceptance coverage through Phase 9
+# Acceptance coverage through Phase 10
 
 Phases 1–6 implement infrastructure, sourced routes, the simulator, baseline
 APIs, Redis realtime delivery, and evaluated next-station ML with SHAP.
@@ -29,6 +29,7 @@ Phase 6 adds all three responsive dashboards and browser acceptance checks.
 | 7 | Loading, errors, reconnect and map stability | [Phase 7 review](phase7_review.md), deterministic browser regression tests |
 | 8 | Expanded endpoint, feature, model and browser coverage | [Test coverage map](testing.md); full suite refuses missing integration services |
 | 9 | Default continuous simulation, portable startup and deployment instructions | Fresh-volume Compose startup, managed URL/auth/startup regressions, Render schema validation, [deployment guide](deployment.md); cloud provisioning remains manual |
+| 10 | Submission overview, pitch architecture and reproducible onboarding | [Submission README](README.md), [system diagram](architecture.md#system-overview), verified metrics/links, local startup instructions and existing full CI acceptance |
 
 The [CI workflow](../.github/workflows/scaffold.yml) runs the combined backend
 suite with dedicated PostgreSQL and Redis test databases, Ruff, frontend checks,

@@ -1,31 +1,65 @@
-# Architecture — Phase 9
+# RailScope architecture
 
-The default stack contains FastAPI, PostgreSQL 15 with PostGIS 3.3, Redis 7.4
-the Next.js/Tailwind dashboards, and a continuous Python telemetry generator. The backend applies Alembic migrations
-and seeds the historical network before accepting requests.
+## System overview
+
+RailScope turns changing train observations into one explained next-station ETA
+calculation shared by passenger, station and control views. Six synthetic trains
+run on an attributed historical network. PostgreSQL/PostGIS preserves route and
+journey evidence; shared features feed XGBoost and an independent carryover
+baseline. Redis notifies connected API workers when committed observations
+change, and the frontend presents both predictions and their freshness.
 
 ```mermaid
-flowchart LR
-  Sources[Archived public timetable and station coordinates] --> Extract[Checksum-verified extraction]
-  Extract --> Fixture[Bundled six-route JSON]
-  Fixture --> Seed[Idempotent seed]
-  Seed --> DB[(PostgreSQL + PostGIS)]
-  Fixture --> Simulator[Python synthetic journeys]
-  Simulator -->|POST position / event| API[FastAPI ingestion]
-  API --> DB
-  DB --> Reads[Baseline ETA and as-of features]
-  Reads --> REST[Train / history / station / fleet APIs]
-  Reads --> WS[WebSocket ETA snapshots]
-  API -->|post-commit train notification and cache update| Redis[(Redis)]
-  Redis -->|pub/sub| WS
-  Redis --> Fleet[Cached fleet aggregation]
-  Redis --> Guard[Shared ingest rate budget]
-  Guard --> API
-  Browser --> Frontend[Next.js passenger / station / control]
-  Frontend -->|GET proxy| REST
-  Frontend -->|GET network| Fixture
-  WS -->|direct browser connection| Browser
+flowchart TB
+  Sources["Archived timetable and station coordinates"] --> Fixture["Checksum-pinned six-route fixture"]
+  Fixture -->|seed| DB[("PostgreSQL + PostGIS")]
+  Fixture --> Simulator["Python simulator: positions and incidents"]
+  Simulator -->|HTTP ingestion| Ingest["FastAPI validation and idempotent writes"]
+  Ingest -->|commit| DB
+  DB --> Features["Shared as-of feature calculation"]
+  Features --> Predict["XGBoost + TreeSHAP and carryover baseline"]
+  Artifact["Reviewed offline JSON model"] --> Predict
+  Predict --> API["FastAPI read APIs and ETA snapshots"]
+  Ingest -.->|after commit| Redis[("Redis cache and pub/sub")]
+  Redis -.->|notify and read cached fleet state| API
+  subgraph UI["One Next.js application"]
+    Passenger["Passenger view"]
+    Station["Station board"]
+    Control["Control room"]
+  end
+  API -->|REST and WebSocket| Passenger
+  API -->|REST polling| Station
+  API -->|REST and WebSocket| Control
 ```
+
+This is a logical data-flow diagram, not a list of separate deployed services.
+Ingestion, feature calculation, prediction and read APIs are modules of one
+backend. Browser HTTP reads go through the Next.js GET-only proxy; WebSockets
+connect directly to the backend. Route metadata also comes through the API.
+The backend and frontend run alongside PostgreSQL, Redis and **one** simulator:
+five local Compose services.
+
+| Component | Responsibility |
+| --- | --- |
+| Historical fixture | Supplies six routes, 63 station coordinates and 91 route stops with source timetable distances/offsets; preserved attribution and checksums make seeding repeatable. |
+| Simulator and ingestion | Generate real-time synthetic movement and disruptions; validate route consistency and sample order, enforce optional ingestion credentials and rate/body limits, and deduplicate UUID retries. |
+| PostgreSQL/PostGIS and features | Store observations, events and route geometry; compute features as of the selected observation, preserving unknown values. This is the prototype's feature layer, not a separately deployed feature-store product. |
+| XGBoost, TreeSHAP and baseline | Load one reviewed JSON artifact, predict next-station delay relative to current delay, explain its residual and preserve a carryover comparison. Other stations and unsupported cases use the baseline. |
+| Redis and API delivery | Cache observed fleet state and notify workers after SQL commit. REST and WebSocket ETA snapshots share the same calculation. Reconnection and periodic reconciliation recover current state after missed notifications. |
+| Three Next.js views | Let passengers inspect a train, station boards list arrivals, and controllers inspect fleet trends/history. Each labels synthetic data, missing evidence, staleness and prediction fallbacks. |
+
+### Offline model lifecycle
+
+Training is separate from the running demo. The existing simulator generates
+complete synthetic journeys; offline code reuses the serving feature arithmetic,
+splits whole journeys chronologically, selects a model using validation data,
+and evaluates later held-out journeys. A reviewed JSON artifact and metadata
+are then included in the backend image. Startup loads the artifact; it does not
+fit or retrain a model. See the [model card](../ml/README.md) for the measured
+83.0% synthetic MAE improvement and its limits.
+
+The remaining sections describe implementation details and failure behavior.
+For startup and the demonstration sequence, see the [submission overview](README.md).
 
 ## Storage
 
@@ -78,8 +112,9 @@ bounded acceptance smoke. Named volumes preserve data across restarts.
 The same backend image accepts DATABASE_URL and PORT on managed hosts. Its
 startup command migrates and seeds before listening. The optional INGEST_API_KEY
 guards writes before body parsing or Redis access; the cloud Blueprint generates
-and shares a key with its one worker. Render hosts PostGIS, Redis, the API and
-worker; Vercel hosts Next.js. Public reads pass through the Next.js proxy, and
+and shares a key with its one worker. The prepared cloud configuration places
+PostGIS, Redis, the API and worker on Render and Next.js on Vercel; cloud
+deployment remains manual. Public reads pass through the Next.js proxy, and
 WebSockets connect directly to the public HTTPS API as WSS. See
 [deployment](deployment.md) for the configuration and manual setup.
 
@@ -138,15 +173,20 @@ explicit local-demo delivery policy, not a production availability guarantee.
 
 ## Scope boundary
 
-Phases 5–6 implement XGBoost/TreeSHAP, measured synthetic evaluation and all
-three operational views. Phase 7 hardens frontend loading, failure recovery,
-WebSocket reconnection and map updates; see the [bug-pass report](phase7_review.md)
-and [dashboard behavior](dashboards.md). Public
-deployment, authentication, TLS, trusted reverse-proxy configuration and durable
-message replay remain outside this local synthetic demo. Baseline response
-shapes and source labels remain unchanged from Phase 3.
+The implemented scope includes the three dashboards, XGBoost/TreeSHAP, baseline
+fallbacks, optional ingestion credentials, and local Compose deployment. The
+historical network, synthetic telemetry and synthetic evaluation are explicitly
+labeled. Read endpoints are public; there are no user accounts or role-based
+access controls. The prepared Render/Vercel setup is not evidence of a deployed
+cloud service, production availability or operational railway accuracy.
 
-## Phase 5 prediction path
+The simulator's blocks and geometry are approximations, and Redis notifications
+have no durable replay. Real feed integration, surveyed track/signaling data,
+automatic model retraining and scale/availability validation remain outside the
+prototype. See [dashboard behavior](dashboards.md), [data provenance](data_sources.md)
+and the [submission limitations](README.md#api-checks-and-submission-scope).
+
+## Prediction path
 
 The backend loads a checksum-validated CPU XGBoost JSON artifact at startup.
 `app.model_features` fixes the input order; offline `ml.dataset` calls the same
@@ -161,5 +201,5 @@ baseline timestamps remain available; later stations keep the baseline.
 Missing/invalid artifacts, inferred anchors and out-of-range inputs degrade to
 baseline-only predictions with an explicit status. Redis fleet caches continue
 to hold observed state, not stale model predictions. No model training runs in
-HTTP requests, API startup or CI. See `ml/README.md` for the reviewed evaluation,
+HTTP requests, API startup or CI. See the [model card](../ml/README.md) for the reviewed evaluation,
 reproduction commands, deployment controls and production-job boundary.
