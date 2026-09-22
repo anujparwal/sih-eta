@@ -1,8 +1,9 @@
-# API contract — Phase 6
+# API contract
 
 Local base URL: `http://localhost:8000`. OpenAPI is at `/openapi.json` and the
 interactive Swagger UI is at `/docs`. These endpoints are for the local
-synthetic demo. Authentication remains for later phases; ingestion now has shared rate limits.
+synthetic demo. Ingestion has shared rate limits and optional Bearer authentication
+via INGEST_API_KEY; public reads and WebSockets do not require credentials.
 Database/cache ports remain private to the Compose network.
 
 | Method | Path | Purpose | Responses |

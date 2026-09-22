@@ -9,6 +9,9 @@ error states, reconnect behavior and map updates; see docs/phase7_review.md.
 Phase 8 extends automated coverage; docs/testing.md maps requirements to tests.
 Phase 9 makes the simulator a default service and adds Render/Vercel deployment
 configuration; docs/deployment.md describes the manual cloud setup.
+Phase 10 adds docs/README.md as the submission overview and a pitch-ready
+architecture summary. Keep measured metrics tied to ml/results/metrics.json and
+clearly distinguish synthetic evidence from real railway performance.
 See ml/README.md for model
 provenance and evaluation limits, and docs/dashboards.md for frontend behavior.
 
