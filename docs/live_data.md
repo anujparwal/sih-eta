@@ -1,4 +1,4 @@
-# RailRadar live lookup — Part 1
+# RailRadar live lookup — Parts 1 and 2
 
 Open `/live` or **Live train lookup** in the navigation. Enter any five-digit train
 number and its optional journey start date (the day it left its origin). Blank
@@ -63,6 +63,34 @@ This read endpoint is public like existing reads. Anyone able to reach a public
 installation can consume its shared budget. This part targets the local student
 prototype; shared deployment would need account access control.
 
+## Provider map (Part 2)
+
+Each live lookup now requests `geometry=true&format=geojson&includeCoordinates=true`
+from the same provider endpoint. This adds no separate geometry request. The
+backend normalizes the provider's wrapped GeoJSON Feature to a validated
+`data.geometry` LineString in **longitude, latitude** order. Station coordinates
+are normalized to `lat` / `lon`; nested location coordinates are supported.
+Fractional route sequence values are preserved for provider-inserted stops.
+Invalid optional geometry or coordinates are discarded while status remains
+usable. Geometry tagged for a different train is discarded. Map cache entries
+are versioned; existing account budgets and error cooldowns are preserved.
+
+- The map draws only supplied geometry. Without it, available station/position
+  markers are shown without fabricated connecting lines. If all coordinates are
+  absent, a map-unavailable message accompanies the working status/timings.
+- A **Provider-reported position** marker requires `isActualPosition: true` and
+  valid coordinates. Its accuracy is not independently verified.
+- Otherwise, **Last reported station** uses coordinates from the matching route
+  stop. Repeated station codes require the matching sequence; ambiguous or
+  missing matches produce no location marker. Location coordinates alone are
+  never treated as GPS tracking.
+- Markers do not animate or extrapolate. Stale, non-live or unverified reports
+  show a muted marker and historical-context notice. Report aging preserves the
+  user's map view. Use **Fit route** or **Show reported location** to recenter.
+- OpenStreetMap supplies base tiles with attribution. If tiles fail, the provider
+  geometry and markers remain visible with a notice. Provider labels are rendered
+  as text, never executable HTML.
+
 ## Scope and next part
 
 Part 1 completes on-demand live train status, route timings, provenance, cache,
@@ -71,16 +99,18 @@ WebSockets, history and ML artifact remain synthetic and separately labelled.
 The live page does not present our model's outputs. Its accuracy on real provider
 observations has not been evaluated.
 
-Later parts can add provider route geometry/maps and separately collect/evaluate
-real observations for the ETA model. A reported station is not continuous GPS.
+Part 2 adds the provider map described above. A later, separate part can collect
+and evaluate real observations for the ETA model. A reported station is not continuous GPS.
 Never insert arbitrary trains into the synthetic ingestion endpoint.
 
 ## Sources and verification
 
 - [RailRadar live status](https://railradar.in/docs/live-train-status)
+- [Route geometry formats](https://railradar.in/docs/train-route-geometry)
 - [Authentication and free quota](https://railradar.in/docs)
 
 Backend tests mock upstream HTTP and use real Redis for cache, budget, concurrency
 and outage behavior. Playwright covers desktop/mobile search, dates, missing
-values, stale/non-live status, and quota failures. Automated tests never use the
+values, stale/non-live status, quota failures, map fallbacks, safe labels, ambiguous
+stations, and preservation of the map view as reports age. Automated tests never use the
 real key. A separate manual provider call verifies account access and coverage.

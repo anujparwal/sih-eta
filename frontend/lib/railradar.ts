@@ -1,6 +1,8 @@
 export type LiveStation = {
   station_code: string | null;
   station_name: string | null;
+  lat?: number | null;
+  lon?: number | null;
 };
 export type RailRadarResult = {
   source: "railradar";
@@ -19,7 +21,7 @@ export type RailRadarResult = {
     is_live: boolean | null;
     tracking_mode: string | null;
     train: { source: LiveStation | null; destination: LiveStation | null } | null;
-    current_location: (LiveStation & { status: string | null; is_actual_position: boolean | null }) | null;
+    current_location: (LiveStation & { sequence?: number | null; status: string | null; is_actual_position: boolean | null }) | null;
     next_halt: LiveStation | null;
     route: (LiveStation & {
       sequence: number;
@@ -32,5 +34,6 @@ export type RailRadarResult = {
       platform: string | number | null;
     })[];
     exceptions: { type: string | null; message: string | null }[];
+    geometry?: { type: "LineString"; coordinates: [number, number][] } | null;
   };
 };
