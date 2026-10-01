@@ -2209,3 +2209,10 @@ table {
   .live-metrics { gap: 16px; }
   .live-metrics dd { font-size: 14px; }
 }
+.live-map-panel { min-width: 0; overflow: hidden; }
+.live-map-note { padding: 12px 24px; }
+.live-map-note p { margin: 4px 0; }
+.live-map-controls { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 24px 12px; }
+.live-map-controls button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: white; }
+.live-location-marker span { display: block; width: 30px; height: 30px; border-radius: 50%; background: #64748b; border: 4px solid white; box-shadow: 0 1px 7px #243c4b88; }
+.live-location-marker[data-freshness="recent"] span { background: #167d70; }

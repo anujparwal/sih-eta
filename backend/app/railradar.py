@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import math
 import os
 from datetime import UTC, date, datetime
 from typing import Annotated, Literal
@@ -10,7 +11,16 @@ from urllib.parse import urlencode
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from fastapi import APIRouter, HTTPException, Path, Query, Response
-from pydantic import AliasChoices, AwareDatetime, BaseModel, Field, ValidationError
+from pydantic import (
+    AliasChoices,
+    AwareDatetime,
+    BaseModel,
+    Field,
+    ValidationError,
+    ValidationInfo,
+    field_validator,
+    model_validator,
+)
 from redis.exceptions import LockError
 
 from app import realtime
@@ -34,15 +44,49 @@ class ProviderModel(BaseModel):
 class Station(ProviderModel):
     station_code: str | None = Field(None, validation_alias=AliasChoices("stationCode", "code"))
     station_name: str | None = Field(None, validation_alias=AliasChoices("stationName", "name"))
+    lat: float | None = None
+    lon: float | None = Field(None, validation_alias=AliasChoices("lng", "lon"))
+
+    @model_validator(mode="before")
+    @classmethod
+    def optional_coordinates(cls, value):
+        """Malformed optional mapping data must not hide usable running status."""
+        if not isinstance(value, dict):
+            return value
+        value = dict(value)
+        coordinates = value.get("coordinates")
+        source = coordinates if isinstance(coordinates, dict) and "lat" not in value else value
+        lat, lon = source.get("lat"), source.get("lng", source.get("lon"))
+        valid = all(
+            isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+            for v in (lat, lon)
+        )
+        if not valid or not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            lat = lon = None
+        value.update(lat=lat, lng=lon, lon=lon)
+        return value
+
+
+class RouteGeometry(BaseModel):
+    """GeoJSON order is longitude, latitude. Only validated LineStrings are drawn."""
+
+    type: Literal["LineString"]
+    coordinates: list[
+        tuple[
+            Annotated[float, Field(strict=True, ge=-180, le=180, allow_inf_nan=False)],
+            Annotated[float, Field(strict=True, ge=-90, le=90, allow_inf_nan=False)],
+        ]
+    ] = Field(min_length=2, max_length=100000)
 
 
 class Location(Station):
+    sequence: float | None = Field(None, allow_inf_nan=False)
     status: str | None = None
     is_actual_position: bool | None = Field(None, validation_alias="isActualPosition")
 
 
 class Stop(Station):
-    sequence: int
+    sequence: float = Field(allow_inf_nan=False)
     is_halt: bool | None = Field(None, validation_alias="isHalt")
     status: str | None = None
     scheduled_arrival: AwareDatetime | None = Field(None, validation_alias="scheduledArrival")
@@ -77,6 +121,30 @@ class ProviderTrain(ProviderModel):
     next_halt: Station | None = Field(None, validation_alias="nextHalt")
     route: list[Stop] = Field(default_factory=list, max_length=1500)
     exceptions: list[ExceptionNotice] = Field(default_factory=list, max_length=100)
+    geometry: RouteGeometry | None = None
+
+    @field_validator("geometry", mode="before")
+    @classmethod
+    def optional_geometry(cls, value, info: ValidationInfo):
+        if value is None or isinstance(value, RouteGeometry):
+            return value
+        if not isinstance(value, dict):
+            return None
+        # The live endpoint wraps a GeoJSON Feature inside geometry.geojson.
+        if value.get("trainNumber", info.data.get("train_number")) != info.data.get("train_number"):
+            return None
+        value = value.get("geojson", value)
+        if isinstance(value, dict) and value.get("type") == "Feature":
+            properties = value.get("properties")
+            if isinstance(properties, dict) and properties.get(
+                "trainNumber", info.data.get("train_number")
+            ) != info.data.get("train_number"):
+                return None
+            value = value.get("geometry")
+        try:
+            return RouteGeometry.model_validate(value)
+        except ValidationError:
+            return None
 
 
 class LiveResult(BaseModel):
@@ -95,7 +163,14 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 def fetch_provider(number: str, journey_date: date, key: str) -> ProviderTrain:
-    query = urlencode({"date": journey_date.isoformat()})
+    query = urlencode(
+        {
+            "date": journey_date.isoformat(),
+            "geometry": "true",
+            "format": "geojson",
+            "includeCoordinates": "true",
+        }
+    )
     request = Request(
         f"https://api.railradar.in/v1/trains/{number}/live?{query}",
         headers={"Authorization": f"Bearer {key}", "Accept": "application/json"},
@@ -177,7 +252,8 @@ def live_train(
     # Isolate accounts without placing the API key itself in Redis keys or logs.
     account = hashlib.sha256(key.encode()).hexdigest()[:16]
     prefix = f"{realtime.KEY_PREFIX}:railradar:{account}"
-    cache_key = f"{prefix}:train:{train_number}:{journey_date}"
+    # Upgrade response cache without resetting the shared account request budgets.
+    cache_key = f"{prefix}:train:{train_number}:{journey_date}:map-v1"
     client = realtime.get_redis()
     previous = None
     raw = client.get(cache_key)

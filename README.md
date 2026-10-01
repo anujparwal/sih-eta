@@ -1,7 +1,8 @@
 # Dynamic Train ETA — SIH 2026
 
 **Live train lookup:** open `/live` (or **Live train lookup** in the navigation)
-to query any five-digit train number using RailRadar. Set `RAILRADAR_API_KEY` in
+to query any five-digit train number using RailRadar, with provider route geometry
+and clearly labelled reported location markers. Set `RAILRADAR_API_KEY` in
 the root `.env` and rebuild the backend/frontend. Requests are on demand, cached
 for five minutes, and protected by local daily/monthly budgets. See
 [live-data setup and limitations](docs/live_data.md). The other dashboards below
