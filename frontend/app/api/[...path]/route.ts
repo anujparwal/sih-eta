@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const path = (await params).path.join("/");
   if (
-    !/^(network|trains|control\/fleet-status|trains\/\d{5}\/(eta|history)|stations\/[A-Z0-9]{1,10}\/arrivals)$/.test(
+    !/^(network|trains|live\/trains\/[0-9]{5}|control\/fleet-status|trains\/\d{5}\/(eta|history)|stations\/[A-Z0-9]{1,10}\/arrivals)$/.test(
       path,
     )
   ) {
@@ -25,14 +25,22 @@ export async function GET(
       "journey_id",
       "after",
       "limit",
+      "date",
     ]) {
       const value = request.nextUrl.searchParams.get(key);
       if (value !== null) url.searchParams.set(key, value);
     }
     const response = await fetch(url, {
       cache: "no-store",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(path.startsWith("live/") ? 20000 : 8000),
     });
+    if (!response.ok && path.startsWith("live/")) {
+      const body = await response.json();
+      return NextResponse.json(
+        { detail: typeof body.detail === "string" ? body.detail : "Enter a valid train number and journey start date." },
+        { status: response.status, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     if (!response.ok)
       return NextResponse.json(
         {

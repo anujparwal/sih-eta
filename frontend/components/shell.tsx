@@ -66,6 +66,7 @@ export function Icon({
 }
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const liveLookup = pathname.startsWith("/live");
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
@@ -83,6 +84,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <p className="nav-caption">YOUR NETWORK</p>
         <nav aria-label="Main navigation">
           {[
+            { href: "/live", text: "Live train lookup", icon: "signal" as const },
             { href: "/", text: "Passenger", icon: "train" as const },
             {
               href: "/station/NDLS",
@@ -118,12 +120,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-bottom">
           <span className="eyebrow">SIH 2026 · DEMONSTRATION</span>
           <p>
-            Six trains.
+            {liveLookup ? "Find a running train." : "Six trains."}
             <br />
             One connected view.
           </p>
           <span className="sidebar-rule" />
-          <small>Synthetic telemetry on archived Indian railway routes.</small>
+          <small>{liveLookup ? "Reported running status supplied by RailRadar." : "Synthetic telemetry on archived Indian railway routes."}</small>
         </div>
       </aside>
       <div className="workspace">
@@ -131,7 +133,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span>
             INDIAN RAIL NETWORK <span className="muted">/</span>{" "}
             <strong>
-              {pathname.startsWith("/control")
+              {liveLookup ? "Live train lookup" : pathname.startsWith("/control")
                 ? "Operations"
                 : pathname.startsWith("/station")
                   ? "Station arrivals"
@@ -139,13 +141,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </strong>
           </span>
           <span className="demo-tag">
-            <span /> SIMULATED DATA
+            <span /> {liveLookup ? "RAILRADAR DATA" : "SIMULATED DATA"}
           </span>
         </div>
         <main id="main">{children}</main>
         <footer className="site-footer">
           <span>Built for a clearer journey.</span>
-          <span>Historical schedules · Schematic routes · All times IST</span>
+          <span>{liveLookup ? "RailRadar reports · All times IST" : "Historical schedules · Schematic routes · All times IST"}</span>
         </footer>
       </div>
     </div>

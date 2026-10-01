@@ -2,6 +2,11 @@
 
 ## Scope and decisions
 
+RailRadar Part 1 adds `/live` and `GET /live/trains/{train_number}` for arbitrary
+train numbers. It is isolated from the six simulated trains and ML inference.
+See docs/live_data.md. Keep provider credentials server-side, requests on demand,
+Redis cache/budgets shared, and provider report time distinct from fetch time.
+
 This is the SIH 2026 Dynamic ETA Forecast for Coaching Trains monorepo.
 Phase 6 adds passenger, station and control dashboards over the evaluated
 synthetic XGBoost/TreeSHAP and Redis-backed APIs. Phase 7 hardens loading,

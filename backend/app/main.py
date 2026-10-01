@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.database import database_url
 from app.ingest import router as ingest_router
 from app.ingest_guard import IngestGuard
+from app.railradar import router as railradar_router
 from app.read_api import router as read_router
 
 
@@ -29,6 +30,7 @@ app = FastAPI(title="Dynamic Train ETA", version="0.6.0", lifespan=lifespan)
 app.add_middleware(IngestGuard)
 app.include_router(ingest_router)
 app.include_router(read_router)
+app.include_router(railradar_router)
 
 
 @app.exception_handler(SQLAlchemyError)

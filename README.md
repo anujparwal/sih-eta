@@ -1,5 +1,12 @@
 # Dynamic Train ETA — SIH 2026
 
+**Live train lookup:** open `/live` (or **Live train lookup** in the navigation)
+to query any five-digit train number using RailRadar. Set `RAILRADAR_API_KEY` in
+the root `.env` and rebuild the backend/frontend. Requests are on demand, cached
+for five minutes, and protected by local daily/monthly budgets. See
+[live-data setup and limitations](docs/live_data.md). The other dashboards below
+remain the synthetic ETA demonstration.
+
 RailScope provides dashboards and an ETA API for coaching trains on Indian routes:
 FastAPI, PostgreSQL/PostGIS, Redis, a Next.js/Tailwind app, and a Python
 telemetry simulator. Six **real historical routes** and 63 stations are seeded
