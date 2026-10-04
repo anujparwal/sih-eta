@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
 from threading import Event
 from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qs, urlsplit
 
 import httpx
 import pytest
@@ -110,9 +111,17 @@ def test_fixed_upstream_auth_and_normalization(monkeypatch):
 
     class Opener:
         def open(self, request, timeout):
+            url = urlsplit(request.full_url)
             assert (
-                request.full_url == "https://api.railradar.in/v1/trains/12953/live?date=2026-09-22"
+                f"{url.scheme}://{url.netloc}{url.path}"
+                == "https://api.railradar.in/v1/trains/12953/live"
             )
+            assert parse_qs(url.query) == {
+                "date": ["2026-09-22"],
+                "geometry": ["true"],
+                "format": ["geojson"],
+                "includeCoordinates": ["true"],
+            }
             assert request.get_header("Authorization") == "Bearer test-secret"
             assert timeout == 12
             return io.BytesIO(json.dumps(sample).encode())
@@ -270,3 +279,93 @@ def test_redis_outage_fails_closed_without_spending_quota(provider, monkeypatch)
     assert response.status_code == 503
     assert "private" not in response.text
     assert not provider
+
+
+def test_map_coordinates_geometry_and_cache_roundtrip():
+    sample = payload()["data"]
+    line = {"type": "LineString", "coordinates": [[77.5684, 12.97759], [77.6, 13.1]]}
+    sample["geometry"] = {
+        "trainNumber": "12953",
+        "format": "geojson",
+        "geojson": {
+            "type": "Feature",
+            "properties": {"trainNumber": "12953"},
+            "geometry": line,
+        },
+    }
+    sample["route"][0].update(lat=12.97759, lng=77.5684)
+    sample["currentLocation"].update(sequence=1, coordinates={"lat": 12.97759, "lng": 77.5684})
+    data = ProviderTrain.model_validate(sample)
+    assert data.geometry.coordinates[0] == (77.5684, 12.97759)
+    assert (data.route[0].lat, data.route[0].lon) == (12.97759, 77.5684)
+    assert data.current_location.lon == 77.5684
+    assert data.current_location.sequence == 1
+    assert data.current_location.is_actual_position is None
+    assert ProviderTrain.model_validate_json(data.model_dump_json()) == data
+
+
+@pytest.mark.parametrize(
+    "geometry",
+    [
+        {"type": "Point", "coordinates": [77, 12]},
+        {"type": "LineString", "coordinates": [[77, 12]]},
+        {"type": "LineString", "coordinates": [[181, 12], [77, 12]]},
+        {"type": "LineString", "coordinates": [[77, 91], [77, 12]]},
+        {"type": "LineString", "coordinates": [[float("nan"), 12], [77, 12]]},
+        {"type": "LineString", "coordinates": [[True, 12], [77, 12]]},
+        {"type": "LineString", "coordinates": [["77", 12], [77, 12]]},
+        {"type": "LineString", "coordinates": [[77, 12, 0], [77, 12]]},
+        {
+            "trainNumber": "99999",
+            "geojson": {"type": "LineString", "coordinates": [[77, 12], [78, 13]]},
+        },
+        {
+            "geojson": {
+                "type": "Feature",
+                "properties": {"trainNumber": "99999"},
+                "geometry": {"type": "LineString", "coordinates": [[77, 12], [78, 13]]},
+            }
+        },
+        {"geojson": None},
+        "unexpected",
+        None,
+    ],
+)
+def test_bad_optional_geometry_does_not_hide_status(geometry):
+    sample = payload()["data"]
+    sample["geometry"] = geometry
+    data = ProviderTrain.model_validate(sample)
+    assert data.geometry is None
+    assert data.status == "running"
+    assert len(data.route) == 1
+
+
+@pytest.mark.parametrize(
+    "coordinates",
+    [
+        {"lat": 91, "lng": 77},
+        {"lat": 12, "lng": 181},
+        {"lat": 12},
+        {"lat": True, "lng": 77},
+        {"lat": "12", "lng": 77},
+        {"lat": float("inf"), "lng": 77},
+    ],
+)
+def test_bad_optional_station_coordinates_are_omitted(coordinates):
+    sample = payload()["data"]
+    sample["route"][0].update(coordinates)
+    sample["currentLocation"]["coordinates"] = coordinates
+    data = ProviderTrain.model_validate(sample)
+    assert data.route[0].lat is data.route[0].lon is None
+    assert data.current_location.lat is data.current_location.lon is None
+    assert data.status == "running"
+
+
+def test_fractional_provider_sequences_are_preserved():
+    # Provider inserts intermediate stops with fractional ordering, not just integers.
+    sample = payload()["data"]
+    sample["route"][0]["sequence"] = 207.7058823529412
+    sample["currentLocation"]["sequence"] = 207.7058823529412
+    data = ProviderTrain.model_validate(sample)
+    assert data.route[0].sequence == data.current_location.sequence == 207.7058823529412
+    assert ProviderTrain.model_validate_json(data.model_dump_json()) == data

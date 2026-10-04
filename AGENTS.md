@@ -2,9 +2,15 @@
 
 ## Scope and decisions
 
-RailRadar Part 1 adds `/live` and `GET /live/trains/{train_number}` for arbitrary
+The `/lab` experiment page and `GET /demo/scenario` serve hypothetical inputs to
+the reviewed model without touching telemetry or provider APIs. Preserve explicit
+synthetic provenance, baseline fallbacks and artifact-sourced evaluation evidence.
+See docs/experiment_lab.md and docs/sih_demo_guide.md for SIH26028.
+
+RailRadar Parts 1–2 add `/live` and `GET /live/trains/{train_number}` for arbitrary
 train numbers. It is isolated from the six simulated trains and ML inference.
-See docs/live_data.md. Keep provider credentials server-side, requests on demand,
+Part 2 draws only provider route geometry and distinguishes reported stations from
+explicit provider positions. See docs/live_data.md. Keep provider credentials server-side, requests on demand,
 Redis cache/budgets shared, and provider report time distinct from fetch time.
 
 This is the SIH 2026 Dynamic ETA Forecast for Coaching Trains monorepo.

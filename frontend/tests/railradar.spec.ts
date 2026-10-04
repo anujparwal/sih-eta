@@ -118,3 +118,87 @@ test("non-live and missing freshness are explicit", async ({ page }) => {
   await page.getByRole("button", { name: "Look up train" }).click();
   await expect(page.getByText(/freshness of this provider report cannot be verified/)).toBeVisible();
 });
+
+function mappedReport() {
+  const result = report();
+  result.data.route[0].lat = 12.98;
+  result.data.route[0].lon = 77.57;
+  result.data.route[1].lat = 13.2;
+  result.data.route[1].lon = 77.8;
+  result.data.geometry = { type: "LineString", coordinates: [[77.57, 12.98], [77.65, 13.1], [77.8, 13.2]] };
+  // Coordinates alone do not mean an actual position; use the matching route station.
+  result.data.current_location!.lat = 14;
+  result.data.current_location!.lon = 78;
+  return result;
+}
+
+test("provider map shows geometry and station context, keeps the view as data ages, and tolerates tile failure", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/tile.openstreetmap.org/**", (route) => route.abort());
+  await page.route("**/api/live/trains/**", (route) => route.fulfill({ json: mappedReport() }));
+  await page.goto("/live?train=22222");
+  await page.getByRole("button", { name: "Look up train" }).click();
+  const map = page.getByRole("region", { name: "RailRadar map for train 22222" });
+  await expect(map).toBeVisible();
+  await expect(map.locator(".leaflet-overlay-pane path")).toHaveCount(3);
+  await expect(page.getByText("Route geometry supplied by RailRadar.", { exact: true })).toBeVisible();
+  const marker = map.locator(".live-location-marker");
+  await expect(marker).toHaveAttribute("title", "Last reported station · Origin · AAA");
+  await expect(marker).toHaveAttribute("data-freshness", "recent");
+  await page.getByRole("button", { name: "Show reported location" }).click();
+  await page.clock.fastForward(1000);
+  const transform = await map.locator(".leaflet-map-pane").getAttribute("style");
+  await page.clock.fastForward(660000);
+  await expect(marker).toHaveAttribute("data-freshness", "unverified");
+  expect(await map.locator(".leaflet-map-pane").getAttribute("style")).toBe(transform);
+  await expect(page.getByText(/Any marker is historical context/)).toBeVisible();
+  await expect(page.getByText("Base map unavailable. Provider route and markers remain visible.")).toBeVisible();
+  await page.getByRole("button", { name: "Fit route" }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("position requires the provider flag, missing geometry draws no invented line, and labels are plain text", async ({ page }) => {
+  const result = mappedReport();
+  result.data.geometry = null;
+  result.data.current_location!.is_actual_position = true;
+  result.data.route[0].station_name = '<img src=x onerror="window.mapInjected=true">';
+  await page.route("**/tile.openstreetmap.org/**", (route) => route.abort());
+  await page.route("**/api/live/trains/**", (route) => route.fulfill({ json: result }));
+  await page.goto("/live?train=22222");
+  await page.getByRole("button", { name: "Look up train" }).click();
+  const map = page.getByRole("region", { name: "RailRadar map for train 22222" });
+  await expect(map.locator(".live-location-marker")).toHaveAttribute("title", "Provider-reported position");
+  await expect(map.locator(".leaflet-overlay-pane path")).toHaveCount(2);
+  await expect(page.getByText(/Route geometry unavailable;/)).toBeVisible();
+  await map.locator(".leaflet-overlay-pane path").first().dispatchEvent("mouseover");
+  await expect(map.locator(".leaflet-tooltip")).toContainText('<img src=x onerror="window.mapInjected=true">');
+  await expect(map.locator(".leaflet-tooltip img")).toHaveCount(0);
+});
+
+test("ambiguous station occurrence has no location marker until sequence is supplied", async ({ page }) => {
+  const result = mappedReport();
+  result.data.route.push({ ...result.data.route[0], sequence: 3 });
+  await page.route("**/tile.openstreetmap.org/**", (route) => route.abort());
+  await page.route("**/api/live/trains/**", (route) => route.fulfill({ json: result }));
+  await page.goto("/live?train=22222");
+  await page.getByRole("button", { name: "Look up train" }).click();
+  const map = page.getByRole("region", { name: "RailRadar map for train 22222" });
+  await expect(map).toBeVisible();
+  await expect(map.locator(".live-location-marker")).toHaveCount(0);
+  await expect(page.getByText("No unambiguous reported location can be placed on this map.")).toBeVisible();
+  result.data.current_location!.sequence = 3;
+  await page.getByRole("button", { name: "Look up train" }).click();
+  await expect(map.locator(".live-location-marker")).toHaveCount(1);
+});
+
+test("missing map coordinates leave the running status and timings usable", async ({ page }) => {
+  await page.route("**/api/live/trains/**", (route) => route.fulfill({ json: report() }));
+  await page.goto("/live?train=22222");
+  await page.getByRole("button", { name: "Look up train" }).click();
+  await expect(page.getByText(/Map unavailable: RailRadar/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Provider test express" })).toBeVisible();
+  await expect(page.getByRole("table")).toBeVisible();
+  await expect(page.locator(".live-map-panel .leaflet-container")).toHaveCount(0);
+});

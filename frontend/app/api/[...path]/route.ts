@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const path = (await params).path.join("/");
   if (
-    !/^(network|trains|live\/trains\/[0-9]{5}|control\/fleet-status|trains\/\d{5}\/(eta|history)|stations\/[A-Z0-9]{1,10}\/arrivals)$/.test(
+    !/^(network|trains|demo\/scenario|live\/trains\/[0-9]{5}|control\/fleet-status|trains\/\d{5}\/(eta|history)|stations\/[A-Z0-9]{1,10}\/arrivals)$/.test(
       path,
     )
   ) {
@@ -26,6 +26,7 @@ export async function GET(
       "after",
       "limit",
       "date",
+      "current_delay_minutes", "distance_km", "elapsed_minutes", "event_severity", "nearby_trains",
     ]) {
       const value = request.nextUrl.searchParams.get(key);
       if (value !== null) url.searchParams.set(key, value);

@@ -54,6 +54,7 @@ def test_readiness_reports_each_dependency(monkeypatch, postgres_ok, redis_ok):
 
 def test_openapi_contains_phase_three_routes():
     assert set(get("/openapi.json").json()["paths"]) == {
+        "/demo/scenario",
         "/health",
         "/ready",
         "/ingest/position",

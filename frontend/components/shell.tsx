@@ -66,6 +66,7 @@ export function Icon({
 }
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const lab = pathname.startsWith("/lab");
   const liveLookup = pathname.startsWith("/live");
   return (
     <div className="app-shell">
@@ -84,6 +85,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <p className="nav-caption">YOUR NETWORK</p>
         <nav aria-label="Main navigation">
           {[
+            { href: "/lab", text: "ETA experiment lab", icon: "control" as const },
             { href: "/live", text: "Live train lookup", icon: "signal" as const },
             { href: "/", text: "Passenger", icon: "train" as const },
             {
@@ -120,7 +122,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="sidebar-bottom">
           <span className="eyebrow">SIH 2026 · DEMONSTRATION</span>
           <p>
-            {liveLookup ? "Find a running train." : "Six trains."}
+            {lab ? "Question the forecast." : liveLookup ? "Find a running train." : "Six trains."}
             <br />
             One connected view.
           </p>
@@ -133,7 +135,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span>
             INDIAN RAIL NETWORK <span className="muted">/</span>{" "}
             <strong>
-              {liveLookup ? "Live train lookup" : pathname.startsWith("/control")
+              {lab ? "ETA experiment lab" : liveLookup ? "Live train lookup" : pathname.startsWith("/control")
                 ? "Operations"
                 : pathname.startsWith("/station")
                   ? "Station arrivals"
@@ -141,13 +143,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </strong>
           </span>
           <span className="demo-tag">
-            <span /> {liveLookup ? "RAILRADAR DATA" : "SIMULATED DATA"}
+            <span /> {lab ? "HYPOTHETICAL INPUTS" : liveLookup ? "RAILRADAR DATA" : "SIMULATED DATA"}
           </span>
         </div>
         <main id="main">{children}</main>
         <footer className="site-footer">
           <span>Built for a clearer journey.</span>
-          <span>{liveLookup ? "RailRadar reports · All times IST" : "Historical schedules · Schematic routes · All times IST"}</span>
+          <span>{lab ? "Synthetic model · Hypothetical experiments" : liveLookup ? "RailRadar reports · All times IST" : "Historical schedules · Schematic routes · All times IST"}</span>
         </footer>
       </div>
     </div>

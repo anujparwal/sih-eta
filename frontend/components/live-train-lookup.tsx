@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Empty, ErrorNotice, Loading, ViewHeader } from "./common";
 import { useClock } from "@/lib/live";
+import { LiveRouteMap } from "./live-route-map";
 import type { LiveStation, RailRadarResult } from "@/lib/railradar";
 
 const formatter = new Intl.DateTimeFormat("en-GB", {
@@ -118,6 +119,7 @@ export function LiveTrainLookup({ initialTrain, initialDate }: { initialTrain: s
           <p className="muted small">A reported station is not a verified GPS position. Arrival and departure reports may include estimates.</p>
         </div>
       </section>
+      <LiveRouteMap data={data} freshness={freshness || "unknown"} />
       {data.exceptions.map((notice, index) => <div className="notice warning" key={index}>
         {notice.type || "Service notice"}: {notice.message || "Check the provider for details."}
       </div>)}
