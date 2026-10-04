@@ -4,7 +4,13 @@ RailScope is an SIH 2026 project prototype for updating train arrival estimates
 as observed delays change. It gives passengers, station displays and a control
 room access to the same ETA calculation, with a visible baseline and model
 explanations. The implemented demo runs **six simulated trains on real historical
-Indian routes**, covering 63 stations. It does not connect to live railway feeds.
+Indian routes**, covering 63 stations. A separate RailRadar lookup now provides real provider reports; those reports
+are not inputs to the synthetic ETA model.
+
+**Problem:** SIH26028 — Dynamic Forecast of Expected Time of Arrival (ETA) for Coaching Trains.
+Open the [experiment lab](http://localhost:3000/lab) to compare hypothetical conditions,
+inspect actual model explanations and export the evidence. See the
+[SIH demonstration and validation guide](sih_demo_guide.md).
 
 ## What the prototype demonstrates
 
@@ -17,6 +23,8 @@ summary](architecture.md#system-overview) can be used in the submission or pitch
 
 | View | Open after startup | What to show |
 | --- | --- | --- |
+| Experiment lab | [Model comparison](http://localhost:3000/lab) | Hypothetical model sensitivity, baseline fallback, reviewed evaluation evidence |
+| Live provider lookup | [RailRadar](http://localhost:3000/live) | Real provider status, route map and explicit freshness; optional API key |
 | Passenger | [Train 12301](http://localhost:3000/?train=12301) | Search, schematic route map, observed position, next-station ML versus baseline, TreeSHAP explanation |
 | Station display | [New Delhi board](http://localhost:3000/station/NDLS) | Ordered arrivals, IST date/time, prediction method and freshness |
 | Control room | [Fleet dashboard](http://localhost:3000/control) | Six-train state, delay filters/sorting, route map, journey history and events |
@@ -47,7 +55,7 @@ PostgreSQL, Redis, the backend and frontend should report healthy, and the
 continuous simulator should be running. The API migrates and seeds automatically;
 all six trains then become active within a few sampling intervals.
 
-Open the three links above and [interactive API docs](http://localhost:8000/docs).
+Open the links above and [interactive API docs](http://localhost:8000/docs).
 For a terminal check (requires curl):
 
 ```sh
@@ -148,14 +156,14 @@ on operational data needs new evaluation. Evidence: [machine-readable metrics](.
 The [API contract](api_contract.md) documents all HTTP/WS endpoints, schemas,
 features, timing rules, errors and retry behavior. The [test guide](testing.md)
 and [phase acceptance map](phase_acceptance.md) link each implemented capability
-to evidence. The latest Phase 9 acceptance passed 175 backend/ML tests, 76
-mocked desktop/mobile browser tests and one real-stack browser test. CI repeats
+to evidence. Test counts grow with features; consult the latest CI run for the current
+backend/ML, desktop/mobile and real-stack browser results. CI repeats
 these checks, builds and the two-minute telemetry smoke on every push and PR.
 
 | Evidence or capability | Current boundary |
 | --- | --- |
 | Routes and stations | Sourced historical timetable and coordinates: six routes, 63 stations, 91 route stops. Not the current operating schedule. Attribution and checksums are in [data sources](data_sources.md). |
-| Positions and incidents | Generated telemetry stands in for live GPS/signal feeds; this repository has no operational railway feed integration. Weather events are simulated. |
+| Positions and incidents | Generated telemetry stands in for live GPS/signal feeds; the model has no operational railway telemetry input. The separate RailRadar view reads provider reports. Weather events are simulated. |
 | Maps and congestion | Straight station connectors and simplified directional blocks, not surveyed tracks, real signal locations or operational safety logic. |
 | Predictions | Next-station ML only, assessed on synthetic data. Out-of-domain checks cannot detect every distribution shift. No automatic online learning or LSTM model. |
 | Missing evidence | Unknown history stays null; platforms have no assignments; observations become stale after 30 seconds. |

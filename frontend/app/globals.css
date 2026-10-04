@@ -2216,3 +2216,47 @@ table {
 .live-map-controls button { padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; background: white; }
 .live-location-marker span { display: block; width: 30px; height: 30px; border-radius: 50%; background: #64748b; border: 4px solid white; box-shadow: 0 1px 7px #243c4b88; }
 .live-location-marker[data-freshness="recent"] span { background: #167d70; }
+
+/* Bounded, stateless experiments; visual separation from live train reports. */
+.experiment-page { max-width: 1320px; margin: auto; }
+.lab-intro { background: #163b39; color: #f4fbf7; border-radius: 14px; padding: 28px; display: flex; gap: 30px; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.lab-intro h2 { font-size: 28px; margin: 8px 0; }
+.lab-intro p { max-width: 650px; line-height: 1.7; }
+.lab-intro .eyebrow { color: #a1d9c8; }
+.lab-intro-note { flex: 0 0 250px; font-size: 12px; line-height: 1.9; border-left: 1px solid #537c72; padding-left: 24px; }
+.lab-grid { display: grid; grid-template-columns: minmax(250px, 0.8fr) minmax(0, 1.4fr); gap: 24px; align-items: start; }
+.lab-inputs, .lab-output, .lab-evidence, .lab-guide { padding: 24px; min-width: 0; }
+.lab-inputs h2, .lab-output h2, .lab-evidence h2, .lab-guide h2 { margin-bottom: 18px; }
+.lab-inputs fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.lab-inputs legend { margin-bottom: 14px; }
+.lab-inputs label { display: grid; gap: 7px; font-size: 13px; font-weight: 600; margin: 16px 0; }
+.lab-inputs input, .lab-inputs select { width: 100%; min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--ink); }
+.lab-inputs .live-search-button { width: 100%; margin-top: 16px; }
+.lab-presets { display: flex; flex-wrap: wrap; gap: 7px; }
+.lab-presets button { font-size: 11px; background: #eff6f2; border: 1px solid #c8dcd2; color: #235b4c; padding: 8px 10px; border-radius: 20px; }
+.lab-empty { min-height: 350px; display: flex; flex-direction: column; justify-content: center; text-align: center; color: var(--muted); line-height: 1.7; }
+.lab-empty > span { color: var(--teal); font-size: 54px; }
+.lab-comparison { margin: 22px 0; }
+.lab-comparison > div:first-child { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-bottom: 8px; }
+.lab-comparison strong { white-space: nowrap; }
+.lab-bar-track { height: 12px; background: #edf1ef; border-radius: 3px; overflow: hidden; }
+.lab-bar-track span { display: block; height: 100%; background: #7b8e97; }
+.reference .lab-bar-track span { background: #8cbbab; }
+.scenario .lab-bar-track span { background: #137b66; }
+.lab-delta { padding: 14px; background: #f1f7f4; line-height: 1.6; border-radius: 6px; }
+.lab-explanation { margin-top: 24px; border-top: 1px solid var(--line); padding-top: 20px; }
+.lab-explanation summary { font-weight: 600; cursor: pointer; }
+.lab-explanation dl > div { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; font-size: 12px; }
+.lab-explanation dd { white-space: nowrap; margin: 0; font-variant-numeric: tabular-nums; }
+.lab-total { border-top: 1px solid var(--line); font-weight: 700; }
+.lab-evidence, .lab-guide { margin-top: 24px; }
+.lab-score-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 20px; }
+.lab-score-grid > div { background: #f3f7f4; padding: 18px; border-radius: 8px; }
+.lab-score-grid span { display: block; font-size: 12px; color: var(--muted); }
+.lab-score-grid strong { display: block; font-size: 30px; margin-top: 7px; color: #1b5e4e; }
+.lab-score-grid small { font-size: 12px; }
+.lab-checksum { overflow-wrap: anywhere; font-family: monospace; font-size: 11px; }
+.lab-guide ol { padding-left: 22px; line-height: 1.9; }
+.lab-guide li { padding: 6px 0; }
+@media (max-width: 900px) { .lab-intro { display: block; } .lab-intro-note { padding: 12px 0 0; border-left: 0; border-top: 1px solid #537c72; } .lab-grid { grid-template-columns: 1fr; } }
+@media (max-width: 650px) { .lab-intro, .lab-inputs, .lab-output, .lab-evidence, .lab-guide { padding: 18px; } .lab-score-grid { grid-template-columns: 1fr; } }

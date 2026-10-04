@@ -12,6 +12,7 @@ from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.database import database_url
+from app.demo import router as demo_router
 from app.ingest import router as ingest_router
 from app.ingest_guard import IngestGuard
 from app.railradar import router as railradar_router
@@ -31,6 +32,7 @@ app.add_middleware(IngestGuard)
 app.include_router(ingest_router)
 app.include_router(read_router)
 app.include_router(railradar_router)
+app.include_router(demo_router)
 
 
 @app.exception_handler(SQLAlchemyError)

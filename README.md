@@ -1,5 +1,9 @@
 # Dynamic Train ETA — SIH 2026
 
+**SIH26028:** Dynamic Forecast of Expected Time of Arrival (ETA) for Coaching Trains.
+Open `/lab` for controlled model experiments, baseline fallback and downloadable
+evidence. See the [demo guide](docs/sih_demo_guide.md) and [lab contract](docs/experiment_lab.md).
+
 **Live train lookup:** open `/live` (or **Live train lookup** in the navigation)
 to query any five-digit train number using RailRadar, with provider route geometry
 and clearly labelled reported location markers. Set `RAILRADAR_API_KEY` in

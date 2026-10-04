@@ -11,6 +11,7 @@ from sqlalchemy.engine import make_url
 from starlette.routing import WebSocketRoute
 
 from app import read_api
+from app.demo import ScenarioResult
 from app.main import app
 from app.railradar import LiveResult, ProviderTrain
 from app.read_schemas import (
@@ -25,6 +26,7 @@ from app.schemas import IngestResult
 from simulator.engine import Fleet
 
 CASES = [
+    ("GET", "/demo/scenario", ScenarioResult),
     ("GET", "/health", None),
     ("GET", "/ready", None),
     ("POST", "/ingest/position", IngestResult),

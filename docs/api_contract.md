@@ -9,6 +9,7 @@ Database/cache ports remain private to the Compose network.
 
 | Method | Path | Purpose | Responses |
 | --- | --- | --- | --- |
+| GET | `/demo/scenario` | Stateless hypothetical model comparison; see [experiment lab](experiment_lab.md). | 200 / 422 |
 | GET | `/health` | Process liveness | 200 |
 | GET | `/ready` | PostGIS query, seeded route check and Redis ping | 200 / 503 |
 | POST | `/ingest/position` | Store validated synthetic telemetry | 201 / 200 / 401 / 404 / 409 / 413 / 422 / 429 / 503 |
