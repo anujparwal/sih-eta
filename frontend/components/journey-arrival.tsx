@@ -37,12 +37,18 @@ export function JourneyArrival({ result, requestedDate, selected, onSelect, fres
       <select value={selected} onChange={(event) => { setShare(null); onSelect(event.target.value); }} disabled={!stops.length}>
         <option value="">Choose a station</option>
         {selected && !stop && <option value={selected}>Saved stop unavailable — choose again</option>}
-        {stops.map((entry, index) => <option key={index} value={stopId(entry)}>{stopName(entry)} · stop {entry.sequence}{entry.is_halt === null ? " · halt unconfirmed" : ""}</option>)}
+        {stops.map((entry, index) => {
+          const identity = entry.station_code || entry.station_name;
+          const sameStation = (candidate: typeof entry) => (candidate.station_code || candidate.station_name) === identity;
+          const repeated = !!identity && stops.filter(sameStation).length > 1;
+          const visit = stops.slice(0, index + 1).filter(sameStation).length;
+          return <option key={index} value={stopId(entry)}>{stopName(entry)}{repeated ? ` · visit ${visit}` : ""}{entry.is_halt === null ? " · halt unconfirmed" : ""}</option>;
+        })}
       </select>
     </label>
     {!stops.length && <p className="muted">The provider did not supply passenger stops for this journey.</p>}
     {selected && !stop && <p className="notice warning" role="status">The saved station could not be matched unambiguously to this route. Choose your destination again.</p>}
-    {!selected && !!stops.length && <p className="muted">Select where you are travelling to. This uses the report already loaded and makes no extra lookup.</p>}
+    {!selected && !!stops.length && <p className="muted">Select a station to see its reported arrival and platform.</p>}
     {stop && status && <div className="arrival-detail">
       <h3>{stopName(stop)}</h3>
       <div className="arrival-times">

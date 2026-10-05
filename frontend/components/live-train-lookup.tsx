@@ -109,7 +109,7 @@ export function LiveTrainLookup({ initialTrain, initialDate, initialStop = "" }:
     {loading && <Loading label="Looking up RailRadar status" />}
     {error && <ErrorNotice message={error} />}
     {!loading && !error && !result && <Empty title="Your journey starts here"
-      text="Enter a train number above to request its running status. Opening this page does not use an API request." />}
+      text="Enter a train number and choose the date it left its origin." />}
     {result && data && <div className="live-results" aria-live="polite">
       {result.warning && <ErrorNotice message={`${result.warning} Showing the last saved response, not a fresh update.`} />}
       {freshness !== "recent" && <div className="notice warning" role="status">
