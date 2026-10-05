@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { arrivals, iso, mockDemo, NOW, snapshot } from "./fixtures";
 
-for (const path of ["/", "/station/NDLS", "/control"]) {
+for (const path of ["/demo", "/station/NDLS", "/control"]) {
   test(`renders ${path} without page errors or page overflow`, async ({
     page,
   }) => {
@@ -38,7 +38,7 @@ test("passenger selects trains and updates estimates and map over WebSocket", as
   page,
 }) => {
   const sockets = await mockDemo(page);
-  await page.goto("/");
+  await page.goto("/demo");
   await expect(page.locator(".hero-time")).toContainText("00:17");
   await expect(page.locator(".next-stop .badge")).toContainText("2 min late");
   await expect(
@@ -69,7 +69,7 @@ test("socket reconnects and late REST snapshots cannot replace newer predictions
   page,
 }) => {
   const sockets = await mockDemo(page);
-  await page.goto("/");
+  await page.goto("/demo");
   await expect(page.locator(".hero-time")).toContainText("00:17");
   sockets
     .get("12301")!
@@ -86,7 +86,7 @@ test("stale and missing telemetry never look like fresh predictions", async ({
   page,
 }) => {
   const sockets = await mockDemo(page);
-  await page.goto("/");
+  await page.goto("/demo");
   await expect(page.locator(".hero-time")).toBeVisible();
   await page.clock.fastForward(31000);
   await expect(
@@ -123,7 +123,7 @@ test("model fallback preserves baseline without an ML badge", async ({
   page,
 }) => {
   const sockets = await mockDemo(page);
-  await page.goto("/");
+  await page.goto("/demo");
   await expect(page.locator(".hero-time")).toBeVisible();
   const eta = snapshot("12301", 1);
   eta.ml_status = "unavailable";
@@ -235,7 +235,7 @@ test("API errors are visible and retry recovers the network", async ({
   await page.route("**/api/network", (route) =>
     route.fulfill({ status: 503, json: { detail: "unavailable" } }),
   );
-  await page.goto("/");
+  await page.goto("/demo");
   await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
   await page.unroute("**/api/network");
   await page.getByRole("button", { name: "Try again" }).click();
@@ -318,7 +318,7 @@ test("passenger search recovers from no matches and preserves keyboard selection
   page,
 }) => {
   await mockDemo(page);
-  await page.goto("/");
+  await page.goto("/demo");
   const search = page.getByLabel("Train name or number");
   await search.fill("not a seeded service");
   await expect(

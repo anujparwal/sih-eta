@@ -2260,3 +2260,39 @@ table {
 .lab-guide li { padding: 6px 0; }
 @media (max-width: 900px) { .lab-intro { display: block; } .lab-intro-note { padding: 12px 0 0; border-left: 0; border-top: 1px solid #537c72; } .lab-grid { grid-template-columns: 1fr; } }
 @media (max-width: 650px) { .lab-intro, .lab-inputs, .lab-output, .lab-evidence, .lab-guide { padding: 18px; } .lab-score-grid { grid-template-columns: 1fr; } }
+
+/* Public journeys keep passenger information separate from prototype dashboards. */
+.demo-navigation { min-width: 0; }
+.demo-navigation summary { cursor: pointer; padding: 15px 12px; color: var(--muted); font-size: 12px; }
+.demo-navigation > div { display: grid; gap: 5px; }
+.demo-navigation summary:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.arrival-planner { padding: 25px; }
+.arrival-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 22px; }
+.arrival-heading h2 { font-size: clamp(21px, 3vw, 29px); margin: 7px 0 0; }
+.arrival-source { background: #e7f3ee; color: #246446; border-radius: 6px; padding: 7px 10px; font-size: 11px; white-space: nowrap; }
+.destination-select { display: grid; gap: 9px; max-width: 620px; font-size: 13px; font-weight: 600; }
+.destination-select select, .journey-share input { width: 100%; min-width: 0; border: 1px solid #d5ddd9; border-radius: 6px; background: white; color: #18372b; padding: 12px; font: inherit; }
+.arrival-detail { margin-top: 24px; }
+.arrival-detail h3 { margin-bottom: 17px; overflow-wrap: anywhere; }
+.arrival-times { display: grid; grid-template-columns: 1fr 1fr .65fr; gap: 18px; }
+.arrival-times > div { display: grid; gap: 7px; align-content: start; }
+.arrival-times span, .arrival-times small { font-size: 12px; color: #52665c; }
+.arrival-times strong { font-size: 19px; overflow-wrap: anywhere; }
+.arrival-message { border-left: 3px solid #2a7250; background: #f0f6f2; padding: 16px; margin-top: 22px; }
+.arrival-message p { margin: 5px 0; font-size: 14px; line-height: 1.6; }
+.arrival-countdown { display: block; font-size: 24px; margin-bottom: 5px; }
+.arrival-detail > p { margin-block: 14px; }
+.journey-share { margin-top: 16px; font-size: 13px; }
+.journey-share p { margin-bottom: 10px; }
+@media (max-width: 900px) {
+  .sidebar { flex-wrap: wrap; }
+  .sidebar nav { flex-wrap: wrap; align-items: start; }
+  .demo-navigation > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 650px) {
+  .sidebar nav { grid-template-columns: minmax(0, 1fr); }
+  .demo-navigation summary { text-align: center; }
+  .arrival-planner { padding: 18px; }
+  .arrival-heading { flex-direction: column; gap: 10px; }
+  .arrival-times { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+}

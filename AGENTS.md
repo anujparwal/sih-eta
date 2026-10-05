@@ -2,6 +2,12 @@
 
 ## Scope and decisions
 
+Public passengers enter at `/` (`/live` remains an alias); `/demo` holds the
+simulated passenger dashboard. Destination arrivals use provider reports only,
+never synthetic ML. Keep exact origin dates and stop occurrences in shared links,
+manual lookups, and no countdown for stale, missing or non-live reports.
+See docs/public_journeys.md.
+
 The `/lab` experiment page and `GET /demo/scenario` serve hypothetical inputs to
 the reviewed model without touching telemetry or provider APIs. Preserve explicit
 synthetic provenance, baseline fallbacks and artifact-sourced evaluation evidence.

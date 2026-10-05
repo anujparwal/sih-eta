@@ -31,7 +31,7 @@ test("real API, Redis and model drive all three browser views", async ({
       ),
     }),
   );
-  await page.goto("/?train=12953");
+  await page.goto("/demo?train=12953");
   await page.getByLabel("Train name or number").fill("12301");
   await page
     .locator(".train-options")

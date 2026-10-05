@@ -6,7 +6,7 @@ import { Shell } from "@/components/shell";
 export const metadata: Metadata = {
   title: "RailScope · Dynamic Train ETA",
   description:
-    "Passenger arrivals, station boards and fleet operations for six simulated trains on historical Indian routes.",
+    "Find train running status and reported arrival at your destination, with clear source and freshness information.",
 };
 
 export default function RootLayout({

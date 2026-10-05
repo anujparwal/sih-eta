@@ -108,7 +108,7 @@ export function StationBoard({ code }: { code: string }) {
                   return (
                     <tr key={`${arrival.train_number}-${arrival.journey_id}`}>
                       <td>
-                        <Link href={`/?train=${arrival.train_number}`}>
+                        <Link href={`/demo?train=${arrival.train_number}`}>
                           <span className="train-number">
                             {arrival.train_number}
                           </span>

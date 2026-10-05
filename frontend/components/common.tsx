@@ -119,7 +119,7 @@ export function TrainLink({
   children: React.ReactNode;
 }) {
   return (
-    <Link className="inline-link" href={`/?train=${number}`}>
+    <Link className="inline-link" href={`/demo?train=${number}`}>
       {children}
     </Link>
   );

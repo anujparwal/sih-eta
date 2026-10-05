@@ -6,13 +6,13 @@ export default function Error({ retry }: { retry: () => void }) {
       <h1>This view could not be loaded</h1>
       <p>
         Your train data has not been changed. Retry this view or return to the
-        passenger dashboard.
+        train lookup.
       </p>
       <button className="secondary-button" onClick={retry}>
         Try again
       </button>
       <Link className="inline-link" href="/">
-        Passenger dashboard
+        Find a train
       </Link>
     </section>
   );
