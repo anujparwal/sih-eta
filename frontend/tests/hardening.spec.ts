@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { arrivals, iso, mockDemo, NOW, snapshot } from "./fixtures";
 
 // These regressions exercise the failure states found in the Phase 7 review.
-for (const path of ["/", "/station/NDLS", "/control"]) {
+for (const path of ["/demo", "/station/NDLS", "/control"]) {
   test(`network failure on ${path} ends loading and offers recovery`, async ({
     page,
   }) => {
@@ -44,7 +44,7 @@ test("unknown train URL stops loading and lets the passenger pick a seeded train
     r.fulfill({ status: 404, json: { detail: "unknown" } }),
   );
   await page.routeWebSocket(/\/ws\/trains\/99999/, () => {});
-  await page.goto("/?train=99999");
+  await page.goto("/demo?train=99999");
   await expect(
     page.getByRole("heading", { name: "Train not found" }),
   ).toBeVisible();
@@ -61,7 +61,7 @@ test("ETA failure is not described as a train waiting to depart", async ({
     r.fulfill({ status: 503, json: { detail: "unavailable" } }),
   );
   await page.routeWebSocket(/\/ws\/trains\/12301/, () => {});
-  await page.goto("/");
+  await page.goto("/demo");
   await expect(page.getByRole("main").getByRole("alert")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Arrival data unavailable" }),
@@ -131,7 +131,7 @@ test("a server that opens then rejects WebSockets never claims live updates", as
     );
     socket.close({ code: 1011 });
   });
-  await page.goto("/");
+  await page.goto("/demo");
   await expect(page.locator(".hero-time")).toBeVisible();
   await page.clock.runFor(7500);
   expect(connections).toBeLessThanOrEqual(4);
@@ -167,7 +167,7 @@ test("all main flows remain console-error free through client navigation", async
     if (m.type() === "error") errors.push(m.text());
   });
   await mockDemo(page);
-  await page.goto("/");
+  await page.goto("/demo");
   await page.getByLabel("Train name or number").fill("12621");
   await page.getByRole("button", { name: /12621/ }).click();
   await page.locator(".next-station-name").click();
@@ -253,7 +253,7 @@ test("total feed outage preserves the last snapshot, marks stale, then reconnect
   page,
 }) => {
   const sockets = await mockDemo(page);
-  await page.goto("/");
+  await page.goto("/demo");
   await expect(page.getByText("Live updates", { exact: true })).toBeVisible();
   await page.route("**/api/trains/12301/eta", (r) =>
     r.fulfill({ status: 503, json: { detail: "unavailable" } }),
@@ -285,7 +285,7 @@ for (const width of [320, 650, 768, 1024]) {
   }) => {
     await page.setViewportSize({ width, height: 900 });
     await mockDemo(page);
-    for (const path of ["/", "/station/NDLS", "/control"]) {
+    for (const path of ["/demo", "/station/NDLS", "/control"]) {
       await page.goto(path);
       await expect(page.locator(".view-skeleton")).toHaveCount(0);
       await expect(

@@ -33,8 +33,8 @@ A concise opening:
 | 0:35–1:30 | Run quiet and severe-disruption presets; open explanations. | Actual XGBoost responses, independent baseline, reconciled TreeSHAP. |
 | 1:30–2:00 | Run unseen congestion. | Explicit baseline fallback rather than unsupported ML. |
 | 2:00–2:35 | Show evaluation evidence and export the experiment. | Chronological journey splits, model identity, synthetic metrics and caveats. |
-| 2:35–3:15 | Open `/live`, enter a known train and correct origin date. | Provider timestamp, cache/freshness, real route and reported-station distinction. If unavailable, show the honest failure state. |
-| 3:15–4:00 | Open passenger/station/control views; close with the pilot plan. | Shared simulated ETA, visible source labels, and a concrete path to real validation. |
+| 2:35–3:15 | Open `/`, enter a known train and correct origin date. | Provider timestamp, cache/freshness, real route and reported-station distinction. If unavailable, show the honest failure state. |
+| 3:15–4:00 | Open `/demo`, station and control views; close with the pilot plan. | Shared simulated ETA, visible source labels, and a concrete path to real validation. |
 
 The lab needs the local backend and artifact but no external provider or database.
 Start the full Compose stack for the other screens. Rehearse with Wi-Fi off to

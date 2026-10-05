@@ -38,7 +38,7 @@ export function Passenger({ initialTrain }: { initialTrain: string }) {
       : 0;
   function select(number: string) {
     setSelected(number);
-    window.history.replaceState(null, "", `/?train=${number}`);
+    window.history.replaceState(null, "", `/demo?train=${number}`);
   }
   const matches = network.data?.routes.filter((r) =>
     `${r.train_number} ${r.train_name}`

@@ -1,4 +1,4 @@
-import { ViewSkeleton } from "@/components/view-skeleton";
-export default function Loading() {
-  return <ViewSkeleton kind="passenger" />;
+import { Loading } from "@/components/common";
+export default function PageLoading() {
+  return <Loading label="Loading train lookup" />;
 }

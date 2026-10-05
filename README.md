@@ -4,9 +4,11 @@
 Open `/lab` for controlled model experiments, baseline fallback and downloadable
 evidence. See the [demo guide](docs/sih_demo_guide.md) and [lab contract](docs/experiment_lab.md).
 
-**Live train lookup:** open `/live` (or **Live train lookup** in the navigation)
+**Passenger lookup:** open `/` (or **Find a train** in the navigation; `/live` is an alias)
 to query any five-digit train number using RailRadar, with provider route geometry
-and clearly labelled reported location markers. Set `RAILRADAR_API_KEY` in
+and clearly labelled reported location markers. Choose a destination to compare
+reported and scheduled arrival times and copy a journey link with its origin date.
+See [public passenger journeys](docs/public_journeys.md). Set `RAILRADAR_API_KEY` in
 the root `.env` and rebuild the backend/frontend. Requests are on demand, cached
 for five minutes, and protected by local daily/monthly budgets. See
 [live-data setup and limitations](docs/live_data.md). The other dashboards below
@@ -25,14 +27,14 @@ measure this simulator, **not real railway accuracy**. See the [model card and
 reproduction steps](ml/README.md) and [evaluation](ml/results/comparison.md).
 Phase 6 provides three responsive **RailScope** dashboards:
 
-- [Passenger](http://localhost:3000): search six trains, watch live positions on
+- [Passenger demo](http://localhost:3000/demo): search six trains, watch live positions on
   Leaflet/OpenStreetMap, and compare next-station ML and carryover estimates.
 - [Station board](http://localhost:3000/station/NDLS): choose any of 63 stations;
   high-contrast arrivals refresh every 10 seconds, with IST dates and update age.
 - [Control room](http://localhost:3000/control): monitor six trains, filter and
   sort delays/trends, and open a journey's timeline, recorded history and events.
 
-All views label simulated telemetry, stale/missing signals and model fallbacks.
+These three demo views label simulated telemetry, stale/missing signals and model fallbacks.
 Platforms are unavailable placeholders. Maps use schematic station connectors.
 Phase 7 adds loading skeletons, explicit failure/retry states, reliable WebSocket
 reconnection and stable map markers. See the [bug-pass report](docs/phase7_review.md).

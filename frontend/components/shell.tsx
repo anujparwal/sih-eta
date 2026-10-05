@@ -67,7 +67,7 @@ export function Icon({
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const lab = pathname.startsWith("/lab");
-  const liveLookup = pathname.startsWith("/live");
+  const liveLookup = pathname === "/" || pathname.startsWith("/live");
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
@@ -82,45 +82,30 @@ export function Shell({ children }: { children: React.ReactNode }) {
             RailScope<small>ARRIVALS, EXPLAINED.</small>
           </span>
         </Link>
-        <p className="nav-caption">YOUR NETWORK</p>
+        <p className="nav-caption">YOUR JOURNEY</p>
         <nav aria-label="Main navigation">
-          {[
-            { href: "/lab", text: "ETA experiment lab", icon: "control" as const },
-            { href: "/live", text: "Live train lookup", icon: "signal" as const },
-            { href: "/", text: "Passenger", icon: "train" as const },
-            {
-              href: "/station/NDLS",
-              text: "Station board",
-              icon: "station" as const,
-            },
-            {
-              href: "/control",
-              text: "Control room",
-              icon: "control" as const,
-            },
-          ].map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(
-                    item.href.split("/").slice(0, 2).join("/"),
-                  );
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={active ? "nav-link active" : "nav-link"}
-                aria-current={active ? "page" : undefined}
-              >
-                <Icon name={item.icon} />
-                {item.text}
-                {active && <span className="nav-dot" />}
-              </Link>
-            );
-          })}
+          <Link href="/" className={liveLookup ? "nav-link active" : "nav-link"} aria-current={liveLookup ? "page" : undefined}>
+            <Icon name="train" />Find a train{liveLookup && <span className="nav-dot" />}
+          </Link>
+          <details className="demo-navigation" open={!liveLookup}>
+            <summary>Prototype demos</summary>
+            <div>
+              {[
+                { href: "/demo", text: "Passenger demo", icon: "train" as const },
+                { href: "/station/NDLS", text: "Station board", icon: "station" as const },
+                { href: "/control", text: "Control room", icon: "control" as const },
+                { href: "/lab", text: "ETA experiment lab", icon: "control" as const },
+              ].map((item) => {
+                const active = pathname.startsWith(item.href.split("/").slice(0, 2).join("/"));
+                return <Link key={item.href} href={item.href} className={active ? "nav-link active" : "nav-link"} aria-current={active ? "page" : undefined}>
+                  <Icon name={item.icon} />{item.text}{active && <span className="nav-dot" />}
+                </Link>;
+              })}
+            </div>
+          </details>
         </nav>
         <div className="sidebar-bottom">
-          <span className="eyebrow">SIH 2026 · DEMONSTRATION</span>
+          <span className="eyebrow">SIH26028 · STUDENT PROTOTYPE</span>
           <p>
             {lab ? "Question the forecast." : liveLookup ? "Find a running train." : "Six trains."}
             <br />

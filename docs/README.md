@@ -24,8 +24,8 @@ summary](architecture.md#system-overview) can be used in the submission or pitch
 | View | Open after startup | What to show |
 | --- | --- | --- |
 | Experiment lab | [Model comparison](http://localhost:3000/lab) | Hypothetical model sensitivity, baseline fallback, reviewed evaluation evidence |
-| Live provider lookup | [RailRadar](http://localhost:3000/live) | Real provider status, route map and explicit freshness; optional API key |
-| Passenger | [Train 12301](http://localhost:3000/?train=12301) | Search, schematic route map, observed position, next-station ML versus baseline, TreeSHAP explanation |
+| Public passenger lookup | [Find a train](http://localhost:3000/) | Provider status, destination arrival, journey sharing, route map and explicit freshness; server API key required |
+| Passenger demo | [Train 12301](http://localhost:3000/demo?train=12301) | Search, schematic route map, observed position, next-station ML versus baseline, TreeSHAP explanation |
 | Station display | [New Delhi board](http://localhost:3000/station/NDLS) | Ordered arrivals, IST date/time, prediction method and freshness |
 | Control room | [Fleet dashboard](http://localhost:3000/control) | Six-train state, delay filters/sorting, route map, journey history and events |
 

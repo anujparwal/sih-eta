@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Empty, ErrorNotice, Loading, ViewHeader } from "./common";
 import { useClock } from "@/lib/live";
+import { JourneyArrival } from "./journey-arrival";
+import { journeyLink, todayInIndia } from "@/lib/journey-arrival";
 import { LiveRouteMap } from "./live-route-map";
 import type { LiveStation, RailRadarResult } from "@/lib/railradar";
 
@@ -21,9 +23,11 @@ function label(value: string | null) {
   return value ? value.replaceAll(/[-_]/g, " ") : "Not reported";
 }
 
-export function LiveTrainLookup({ initialTrain, initialDate }: { initialTrain: string; initialDate: string }) {
+export function LiveTrainLookup({ initialTrain, initialDate, initialStop = "" }: { initialTrain: string; initialDate: string; initialStop?: string }) {
   const [number, setNumber] = useState(initialTrain);
   const [journeyDate, setJourneyDate] = useState(initialDate);
+  const [selected, setSelected] = useState(initialStop);
+  const [requestedDate, setRequestedDate] = useState(initialDate);
   const [result, setResult] = useState<RailRadarResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -31,6 +35,15 @@ export function LiveTrainLookup({ initialTrain, initialDate }: { initialTrain: s
   const active = useRef<AbortController | null>(null);
   const now = useClock();
   useEffect(() => () => active.current?.abort(), []);
+
+  function clearJourney() {
+    active.current?.abort();
+    active.current = null;
+    setLoading(false);
+    setResult(null);
+    setError(null);
+    setSelected("");
+  }
 
   async function lookup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,11 +54,14 @@ export function LiveTrainLookup({ initialTrain, initialDate }: { initialTrain: s
     setLoading(true);
     setError(null);
     setResult(null);
-    const query = new URLSearchParams();
-    if (journeyDate) query.set("date", journeyDate);
+    const date = journeyDate || todayInIndia();
+    setJourneyDate(date);
+    setRequestedDate(date);
+    const query = new URLSearchParams({ date });
     const displayQuery = new URLSearchParams(query);
     displayQuery.set("train", number);
-    window.history.replaceState(null, "", `/live?${displayQuery}`);
+    if (selected) displayQuery.set("stop", selected);
+    window.history.replaceState(null, "", `${window.location.pathname}?${displayQuery}`);
     try {
       const response = await fetch(`/api/live/trains/${number}?${query}`, {
         cache: "no-store", signal: controller.signal,
@@ -78,21 +94,21 @@ export function LiveTrainLookup({ initialTrain, initialDate }: { initialTrain: s
       <form onSubmit={lookup} className="live-search-form">
         <label>Train number
           <input inputMode="numeric" pattern="[0-9]{5}" minLength={5} maxLength={5} required
-            placeholder="e.g. 12953" value={number} onChange={(event) => setNumber(event.target.value)} />
+            placeholder="e.g. 12953" value={number} onChange={(event) => { clearJourney(); setNumber(event.target.value); }} />
         </label>
         <label>Journey start date
-          <input type="date" value={journeyDate} onChange={(event) => setJourneyDate(event.target.value)} />
+          <input type="date" value={journeyDate} onChange={(event) => { clearJourney(); setJourneyDate(event.target.value); }} />
         </label>
         <button className="live-search-button" type="submit" disabled={loading}>
           {loading ? "Looking up…" : "Look up train"}
         </button>
       </form>
       <p className="muted small">Leave the date blank for today in India. For an overnight train, select the date it left its origin.</p>
-      <p className="muted small">Updates are requested when you submit. Results are shared for five minutes to conserve the free API quota.</p>
+      <p className="muted small">Reports may be reused for five minutes. Use Look up train to request an update.</p>
     </section>
     {loading && <Loading label="Looking up RailRadar status" />}
     {error && <ErrorNotice message={error} />}
-    {!loading && !error && !result && <Empty title="Search beyond the demo network"
+    {!loading && !error && !result && <Empty title="Your journey starts here"
       text="Enter a train number above to request its running status. Opening this page does not use an API request." />}
     {result && data && <div className="live-results" aria-live="polite">
       {result.warning && <ErrorNotice message={`${result.warning} Showing the last saved response, not a fresh update.`} />}
@@ -119,10 +135,16 @@ export function LiveTrainLookup({ initialTrain, initialDate }: { initialTrain: s
           <p className="muted small">A reported station is not a verified GPS position. Arrival and departure reports may include estimates.</p>
         </div>
       </section>
-      <LiveRouteMap data={data} freshness={freshness || "unknown"} />
       {data.exceptions.map((notice, index) => <div className="notice warning" key={index}>
         {notice.type || "Service notice"}: {notice.message || "Check the provider for details."}
       </div>)}
+      <JourneyArrival result={result} requestedDate={requestedDate} selected={selected}
+        freshness={freshness || "unknown"} now={now} onSelect={(value) => {
+          setSelected(value);
+          const path = journeyLink(result, requestedDate, value);
+          window.history.replaceState(null, "", `${window.location.pathname}${path.slice(1)}`);
+        }} />
+      <LiveRouteMap data={data} freshness={freshness || "unknown"} />
       <section className="panel live-route">
         <div className="panel-heading"><h2>Route and reported timings</h2>
           <label><input type="checkbox" checked={haltsOnly} onChange={(event) => setHaltsOnly(event.target.checked)} /> Halting stations only</label>
