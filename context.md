@@ -167,7 +167,7 @@ Principal backend endpoints:
 
 Repository acceptance documentation covers **Phases 1–10**: infrastructure, sourced network/simulation, baseline/features/read APIs, Redis realtime delivery, evaluated ML, dashboards, hardening, expanded tests, deployment configuration and submission documentation. Phase 9 supplies configuration and instructions; it does not mean public hosting has been provisioned.
 
-Subsequent work integrated RailRadar, provider-only geometry, the SIH experiment lab and public destination journeys. The public-passenger PR **#14** was merged by the user on **5 October 2026**. Both associated GitHub acceptance checks passed. The application baseline for this audit is `origin/main` commit **b96d065**. The current handoff branch is **codex/project-handoff**, based on that commit.
+Subsequent work integrated RailRadar, provider-only geometry, the SIH experiment lab and public destination journeys. The public-passenger PR **#14** was merged by the user on **5 October 2026**. Both associated GitHub acceptance checks passed. The application baseline for this audit is `origin/main` commit **b96d065**. The current handoff branch is **codex/project-handoff**, based on that commit. Its documentation changes are published in [PR #15](https://github.com/anujparwal/sih-eta/pull/15), open for review and not merged. The passing merged-PR CI evidence above refers to #14; it is not a claim that #15 checks have completed.
 
 ### Public passenger functionality
 
