@@ -2,6 +2,17 @@
 
 ## System overview
 
+There are three deliberately separate data paths in the current application:
+
+- `/` and `/live` request RailRadar reports on demand through the backend. Redis
+  shares provider caches and call budgets. Destination arrivals use these reports,
+  never synthetic model outputs. See [public journeys](public_journeys.md).
+- `/demo`, `/station/[code]` and `/control` use the synthetic telemetry pipeline
+  described below, including next-station XGBoost predictions and TreeSHAP.
+- `/lab` calls `GET /demo/scenario` with hypothetical inputs to the reviewed
+  synthetic model. It neither requests provider data nor writes telemetry or
+  trains models. See [experiment lab](experiment_lab.md).
+
 RailScope turns changing train observations into one explained next-station ETA
 calculation shared by passenger, station and control views. Six synthetic trains
 run on an attributed historical network. PostgreSQL/PostGIS preserves route and
@@ -181,8 +192,8 @@ access controls. The prepared Render/Vercel setup is not evidence of a deployed
 cloud service, production availability or operational railway accuracy.
 
 The simulator's blocks and geometry are approximations, and Redis notifications
-have no durable replay. Real feed integration, surveyed track/signaling data,
-automatic model retraining and scale/availability validation remain outside the
+have no durable replay. Real feed integration into the ML pipeline, surveyed
+track/signaling data, automatic model retraining and scale/availability validation remain outside the
 prototype. See [dashboard behavior](dashboards.md), [data provenance](data_sources.md)
 and the [submission limitations](README.md#api-checks-and-submission-scope).
 
