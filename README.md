@@ -42,6 +42,9 @@ reconnection and stable map markers. See the [bug-pass report](docs/phase7_revie
 For the submission overview, model results, limitations and a short demo sequence,
 start with [docs/README.md](docs/README.md).
 
+For a developer handoff covering the verified state, environment and remaining
+work, read [context.md](context.md).
+
 ## Start locally
 
 Install Git and Docker Engine/Desktop with Compose v2, start Docker, and use a
@@ -76,7 +79,8 @@ docker compose ps
 ```
 
 The simulator emits one sample per train about every five real seconds and
-occasionally produces delays. No railway API keys or live feeds are used.
+occasionally produces delays. The simulator itself uses no railway API keys or
+live feeds; the separate passenger lookup uses RailRadar when configured.
 Use `docker compose stop simulator` to pause it and `docker compose start simulator`
 to resume with new journeys. For Render and Vercel setup, see the
 [deployment guide](docs/deployment.md). It includes environment variables,

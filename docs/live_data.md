@@ -1,7 +1,7 @@
 # RailRadar live lookup — Parts 1 and 2
 
-Open `/live` or **Live train lookup** in the navigation. Enter any five-digit train
-number and its optional journey start date (the day it left its origin). Blank
+Open `/` or **Find a train** in the navigation; `/live` remains an alias. Enter any
+five-digit train number and its optional journey start date (the day it left its origin). Blank
 date means today in Asia/Kolkata. Overnight trains may need yesterday's date.
 Coverage and accuracy depend on RailRadar. Opening the page or leaving it open
 makes no provider requests: submit to fetch, and resubmit to refresh.

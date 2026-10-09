@@ -20,13 +20,14 @@ curl --fail 'http://localhost:8000/trains?active_only=true'
 docker compose ps
 ```
 
-After this PR is merged, the commands above use the deployment configuration on
-`main`. Before merging, check out the PR branch `codex/phase-9-deployment` first.
+The deployment configuration is merged on `main`.
 `docker-compose` is equivalent if that is your Compose executable name.
 PostgreSQL, Redis, the API and frontend must be healthy; the fifth service,
 `simulator`, must be running. Six trains should become active within the first
-few sampling intervals. Open <http://localhost:3000>, `/station/NDLS`, and
-`/control`. The API documentation is at <http://localhost:8000/docs>.
+few sampling intervals. Open <http://localhost:3000> for provider-backed passenger
+lookup, `/demo` for the simulated passenger dashboard, `/station/NDLS` for the
+station board, and `/control` for fleet monitoring. `/lab` runs controlled model
+experiments. The API documentation is at <http://localhost:8000/docs>.
 
 The backend's image command, `python -m app.start`, applies Alembic migrations,
 seeds the checked-in six-route fixture and then starts Uvicorn. Failed migrations
